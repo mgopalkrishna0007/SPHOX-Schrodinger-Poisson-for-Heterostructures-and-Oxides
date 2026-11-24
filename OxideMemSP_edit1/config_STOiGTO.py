@@ -89,6 +89,20 @@ config = {
     "grow_factor": 1.05,     # alpha *= grow_factor when the error decreases
     "shrink_factor": 0.5,    # alpha *= shrink_factor when the error increases
 
+    # --- Fixed Charge Profiles ---
+    # Shape of every fixed charge inside its layer: "delta" | "step" | "gaussian"
+    #   delta    : on the atomic plane (layer centre); dipoles: on centre -/+ delta_plus/minus
+    #   step     : uniform over the whole layer;        dipoles: + over left half, - over right half
+    #   gaussian : centred on the layer centre (dipoles: on the +/- points), truncated to the layer,
+    #              sigma = sigma_frac * t_layer
+    # Per-charge overrides: "profile" (+ optional "sigma_frac" or "sigma" in m) inside a
+    # doping_profiles / dipole_configs entry, or "charge_profile" inside a layer dict (polar planes).
+    "charge_profile_defaults": {
+        "polar":  {"shape": "delta", "sigma_frac": 0.25},
+        "doping": {"shape": "delta", "sigma_frac": 0.25},
+        "dipole": {"shape": "delta", "sigma_frac": 0.25},
+    },
+
     # --- Boundary Conditions ---
     "bc_left_type": "dirichlet",
     "V_left_applied": 0.0,
@@ -176,6 +190,7 @@ config = {
     "doping_profiles": [
         {
             "type": "donor",
+            "profile": "delta",            # "delta" | "step" | "gaussian"
             "value": DONOR_E_PER_UC,          # electrons per interface unit cell
             "interface": ("STO", "GTO"),
             "direction": "right",

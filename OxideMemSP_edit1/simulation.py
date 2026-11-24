@@ -34,7 +34,7 @@ def build_device(config):
 
     # --- 4. Intrinsic Layer-Based Charges (Polar Planes) ---
     N_D_array, N_A_array = np.zeros(len(z)), np.zeros(len(z))
-    add_polar_plane_charges(flat_layers, layer_boundaries, z, dz_node_arr, N_D_array, N_A_array)
+    add_polar_plane_charges(config, flat_layers, layer_boundaries, z, dz_node_arr, N_D_array, N_A_array)
 
     # --- 5. Interface-Relative Doping Injection ---
     add_doping_profiles(config, flat_layers, layer_boundaries, z, dz_node_arr, N_D_array, N_A_array)
