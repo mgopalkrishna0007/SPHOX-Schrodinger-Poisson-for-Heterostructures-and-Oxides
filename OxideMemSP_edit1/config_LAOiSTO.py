@@ -71,10 +71,11 @@ config = {
     "eps_tol": 1e-3,        # relative eps change required for convergence
 
     # Field-dependent eps update (only matters for layers with "is_eps_dynamic": True)
+    #   "input" : eps recomputed from the input potential's field every loop after eps_start
+    #             (recommended: anderson then converges reliably, e.g. STOiGTO 87 loops vs never)
     #   "damped": eps from the previous output field, damped (anderson: mix_beta_eps after eps_start;
     #             alpha: with alpha) -- original behaviour
-    #   "input" : eps recomputed from the input potential's field every loop after eps_start
-    "eps_update": "damped",
+    "eps_update": "input",
 
     # Alpha mixing (adaptive linear mixing, used when mixing_method == "alpha")
     "alpha": 0.05,           # initial mixing fraction (V and eps)

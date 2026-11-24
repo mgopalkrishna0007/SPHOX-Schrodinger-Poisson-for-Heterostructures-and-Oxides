@@ -23,7 +23,8 @@ Layers with `"is_eps_dynamic": True` and an `"eps_dynamic_func"` get ε from the
 - **Dipole layers keep a constant ε.** By default, a dipole layer uses its `eps_r` even if the layer is field dependent. To let ε(E) act inside one, set `"eps_dynamic_inside": True` on that dipole entry.
 - **`"eps_update"` sets how ε is updated.**
   - `"damped"` (original): ε comes from the previous output field, damped by the mixer.
-  - `"input"`: ε is recomputed from the input potential each loop after `eps_start`.
+  - `"input"` (the default in the configs): ε is recomputed from the input potential each loop after `eps_start`. Anderson converges much more reliably this way. In tests, STOiGTO converged in 87 loops instead of never.
+- **Convergence waits for ε.** If any layer is field dependent, the loop cannot declare convergence before `eps_start`. Before this change, Anderson could stop early with ε never updated.
 - **ε(E) must be continuous.** The fit has to join smoothly at 0.27 MV/cm. With `C = 736.30` it does; with `C = 719.307` it jumps from 300 to 237, and the loop oscillates.
 
 ## Fixed-charge profiles (in every config)

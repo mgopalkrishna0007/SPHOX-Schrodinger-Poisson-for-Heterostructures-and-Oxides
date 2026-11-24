@@ -67,6 +67,10 @@ def run_self_consistent_loop(config, device):
     if eps_update not in ("damped", "input"):
         raise ValueError(f"Unknown eps_update '{eps_update}'. Choose 'damped' or 'input'.")
     eps_start = config.get("eps_start", 0)
+    # With field-dependent layers, eps is only updated after eps_start (anderson-damped and "input").
+    # Converging before that would stop with eps never updated, so convergence is blocked until then.
+    has_dynamic_eps = any(L.get("is_eps_dynamic", False) and "eps_dynamic_func" in L for L in flat_layers)
+    eps_delayed = has_dynamic_eps and (eps_update == "input" or scheme.name == "anderson")
     Vin = np.zeros_like(z)
     convergence_met = False
 
@@ -137,7 +141,7 @@ def run_self_consistent_loop(config, device):
             print_loop_report(nloop, Err, Ef, config, Q_e, Q_h, Q_ND, Q_NA, Q_net, net_integral_charge,
                               eps_old_int, eps_new_int, max_eps_change, rho_net, z, interface_idx)
 
-            if scheme.is_converged(Err, eps_err):
+            if scheme.is_converged(Err, eps_err) and not (eps_delayed and nloop <= eps_start):
                 convergence_met = True
                 break
 
