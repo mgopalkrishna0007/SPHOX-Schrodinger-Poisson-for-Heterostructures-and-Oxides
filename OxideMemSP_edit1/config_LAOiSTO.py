@@ -60,7 +60,7 @@ config = {
     
     # --- Mixing Settings ---
     # Choose the self-consistent mixing scheme: "anderson" or "alpha"
-    "mixing_method": "anderson",
+    "mixing_method": "alpha",
 
     # Anderson mixing (used when mixing_method == "anderson")
     "mix_m": 6,             # number of previous iterates kept in the Anderson history
@@ -85,10 +85,11 @@ config = {
     #              sigma = sigma_frac * t_layer
     # Per-charge overrides: "profile" (+ optional "sigma_frac" or "sigma" in m) inside a
     # doping_profiles / dipole_configs entry, or "charge_profile" inside a layer dict (polar planes).
+
     "charge_profile_defaults": {
-        "polar":  {"shape": "delta", "sigma_frac": 0.25},
-        "doping": {"shape": "delta", "sigma_frac": 0.25},
-        "dipole": {"shape": "delta", "sigma_frac": 0.25},
+        "polar":  {"shape": "step", "sigma_frac": 0.25},
+        "doping": {"shape": "step", "sigma_frac": 0.25},
+        "dipole": {"shape": "step", "sigma_frac": 0.25},
     },
 
     # --- Boundary Conditions ---
@@ -158,7 +159,7 @@ config = {
     },
 
     # --- Stack Definition ---
-    "stack_definition": ["STO*100", "LAO*100"],
+    "stack_definition": ["STO*100", "LAO*20"],
 
     "thickness_sweep": {
         "enabled": False,

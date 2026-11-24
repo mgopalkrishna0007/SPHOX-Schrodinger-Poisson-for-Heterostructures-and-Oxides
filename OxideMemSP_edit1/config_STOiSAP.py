@@ -94,9 +94,9 @@ config = {
     # Per-charge overrides: "profile" (+ optional "sigma_frac" or "sigma" in m) inside a
     # doping_profiles / dipole_configs entry, or "charge_profile" inside a layer dict (polar planes).
     "charge_profile_defaults": {
-        "polar":  {"shape": "delta", "sigma_frac": 0.25},
-        "doping": {"shape": "delta", "sigma_frac": 0.25},
-        "dipole": {"shape": "delta", "sigma_frac": 0.25},
+        "polar":  {"shape": "step", "sigma_frac": 0.25},
+        "doping": {"shape": "step", "sigma_frac": 0.25},
+        "dipole": {"shape": "step", "sigma_frac": 0.25},
     },
 
     # --- Boundary Conditions ---
@@ -113,9 +113,9 @@ config = {
                 {
                     "name": "SrO",   # Previously L2
                     "Ec": -3.86, "Ev": -7.1, 
-                    "meff_e": 0.4, "meff_h": 1.2, 
+                    "meff_e": 0.7, "meff_h": 1.0, 
                     "eps_r": 330.0, 
-                    "is_eps_dynamic": True, 
+                    "is_eps_dynamic": False, 
                     "eps_dynamic_func": sto_field_dependent_epsilon, 
                     "t_layer": t_STO_half,
                     "layer_charge": 0.0  
@@ -124,9 +124,9 @@ config = {
                 {
                     "name": "TiO2",  # Previously L1
                     "Ec": -3.86, "Ev": -7.1, 
-                    "meff_e": 0.4, "meff_h": 1.2, 
+                    "meff_e": 0.7, "meff_h": 1.0, 
                     "eps_r": 330.0, 
-                    "is_eps_dynamic": True, 
+                    "is_eps_dynamic": False, 
                     "eps_dynamic_func": sto_field_dependent_epsilon, 
                     "t_layer": t_STO_half,
                     "layer_charge": 0.0  
@@ -175,7 +175,7 @@ config = {
     # 10 layers of Sapphire substrate + 10 layers of STO film
     # "stack_definition": ["Sapphire*30", "STO*77"],
 
-    "stack_definition": ["Sapphire*20", "SapphireTop*1","STO*77"],
+    "stack_definition": ["Sapphire*10","STO*77"],
 
 
     "thickness_sweep": {
@@ -190,42 +190,101 @@ config = {
         
     {
         "type": "donor",
-        "profile": "delta",            # "delta" | "step" | "gaussian"
-        "value": +0.01,                  # e/uc = 0.2 V_O²⁺ per uc; scan 0.25–0.55
-        "interface": ["SapphireTop", "STO"],
+        "profile": "step",            # "delta" | "step" | "gaussian"
+        "value": +0.1,                  # e/uc = 0.2 V_O²⁺ per uc; scan 0.25–0.55
+        "interface": ["Sapphire", "STO"],
         "direction": "right",
         "layer_offset": [1, 1]         # TiO2#1, the first Ti plane
     },
         
     {
         "type": "donor",
-        "profile": "delta",            # "delta" | "step" | "gaussian"
-        "value": -0.4,                  # e/uc = 0.2 V_O²⁺ per uc; scan 0.25–0.55
-        "interface": ["SapphireTop", "STO"],
+        "profile": "step",            # "delta" | "step" | "gaussian"
+        "value": -0.0,                  # e/uc = 0.2 V_O²⁺ per uc; scan 0.25–0.55
+        "interface": ["Sapphire", "STO"],
         "direction": "right",
         "layer_offset": [2, 2]         # TiO2#1, the first Ti plane
     },
     
     {
         "type": "donor",
-        "profile": "delta",            # "delta" | "step" | "gaussian"
-        "value": +0.1,                  # e/uc = 0.2 V_O²⁺ per uc; scan 0.25–0.55
-        "interface": ["SapphireTop", "STO"],
+        "profile": "step",            # "delta" | "step" | "gaussian"
+        "value": +0.0,                  # e/uc = 0.2 V_O²⁺ per uc; scan 0.25–0.55
+        "interface": ["Sapphire", "STO"],
         "direction": "right",
         "layer_offset": [154, 154]         # TiO2#1, the first Ti plane
     }
     ],
 
 
-    "dipole_configs": [{
-        "interface": ["SapphireTop", "STO"],
+    "dipole_configs": [
+        
+        
+        {
+        "interface": ["Sapphire", "STO"],
         "direction": "right",
-        "profile": "delta",            # "delta" | "step" | "gaussian"
+        "profile": "step",            # "delta" | "step" | "gaussian"
         "layer_offset": [4, 4],        # centred on the Ti plane of UC1
         "value": 4,                  # e/uc, see below
         "delta_plus_0": 0.1e-9,
         "delta_minus_0": 0.1e-9,     # total separation 0.19 nm
         "decay_mode": "none",
         "decay_rate": 2
-    }]
+    },
+
+
+            {
+        "interface": ["Sapphire", "STO"],
+        "direction": "right",
+        "profile": "step",            # "delta" | "step" | "gaussian"
+        "layer_offset": [5, 5],        # centred on the Ti plane of UC1
+        "value": 2,                  # e/uc, see below
+        "delta_plus_0": 0.05e-9,
+        "delta_minus_0": 0.05e-9,     # total separation 0.19 nm
+        "decay_mode": "none",
+        "decay_rate": 2
+    }
+    ,
+
+            {
+        "interface": ["Sapphire", "STO"],
+        "direction": "right",
+        "profile": "step",            # "delta" | "step" | "gaussian"
+        "layer_offset": [6, 6],        # centred on the Ti plane of UC1
+        "value": 4,                  # e/uc, see below
+        "delta_plus_0": 0.025e-9,
+        "delta_minus_0": 0.025e-9,     # total separation 0.19 nm
+        "decay_mode": "none",
+        "decay_rate": 2
+    }
+     ,
+    
+                {
+            "interface": ["Sapphire", "STO"],
+            "direction": "right",
+            "profile": "step",            # "delta" | "step" | "gaussian"
+            "layer_offset": [7, 7],        # centred on the Ti plane of UC1
+            "value": 2,                  # e/uc, see below
+            "delta_plus_0": 0.0125e-9,
+            "delta_minus_0": 0.0125e-9,     # total separation 0.19 nm
+            "decay_mode": "none",
+            "decay_rate": 2
+        }
+
+         ,
+        
+                    {
+                "interface": ["Sapphire", "STO"],
+                "direction": "right",
+                "profile": "step",            # "delta" | "step" | "gaussian"
+                "layer_offset": [8, 8],        # centred on the Ti plane of UC1
+                "value": 4,                  # e/uc, see below
+                "delta_plus_0": 0.00625e-9,
+                "delta_minus_0": 0.00625e-9,     # total separation 0.19 nm
+                "decay_mode": "none",
+                "decay_rate": 2
+            }
+    
+    
+    ]
 }
