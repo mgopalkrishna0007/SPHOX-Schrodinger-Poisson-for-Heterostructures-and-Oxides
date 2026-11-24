@@ -228,12 +228,36 @@ config = {
 
 
     "dipole_configs": [
+
+
+
         
+    # {"interface": ["Sapphire", "STO"], "direction": "right", "profile": "step", "layer_offset": [1, 1], "value": 2, "delta_plus_0": 0.1e-9, "delta_minus_0": 0.1e-9, "decay_mode": "none", "decay_rate": 2},
+    # {"interface": ["Sapphire", "STO"], "direction": "right", "profile": "step", "layer_offset": [2, 2], "value": 4, "delta_plus_0": 0.05e-9, "delta_minus_0": 0.05e-9, "decay_mode": "none", "decay_rate": 2},
+    # {"interface": ["Sapphire", "STO"], "direction": "right", "profile": "step", "layer_offset": [3, 3], "value": 2, "delta_plus_0": 0.025e-9, "delta_minus_0": 0.025e-9, "decay_mode": "none", "decay_rate": 2},
+    # {"interface": ["Sapphire", "STO"], "direction": "right", "profile": "step", "layer_offset": [4, 4], "value": 4, "delta_plus_0": 0.0125e-9, "delta_minus_0": 0.0125e-9, "decay_mode": "none", "decay_rate": 2},
+    # {"interface": ["Sapphire", "STO"], "direction": "right", "profile": "step", "layer_offset": [5, 5], "value": 2, "delta_plus_0": 0.00625e-9, "delta_minus_0": 0.00625e-9, "decay_mode": "none", "decay_rate": 2},
+    # {"interface": ["Sapphire", "STO"], "direction": "right", "profile": "step", "layer_offset": [6, 6], "value": 4, "delta_plus_0": 0.003125e-9, "delta_minus_0": 0.003125e-9, "decay_mode": "none", "decay_rate": 2},
+    # {"interface": ["Sapphire", "STO"], "direction": "right", "profile": "step", "layer_offset": [7, 7], "value": 2, "delta_plus_0": 0.0015625e-9, "delta_minus_0": 0.0015625e-9, "decay_mode": "none", "decay_rate": 2},
+    # {"interface": ["Sapphire", "STO"], "direction": "right", "profile": "step", "layer_offset": [8, 8], "value": 4, "delta_plus_0": 0.00078125e-9, "delta_minus_0": 0.00078125e-9, "decay_mode": "none", "decay_rate": 2},
+    # {"interface": ["Sapphire", "STO"], "direction": "right", "profile": "step", "layer_offset": [9, 9], "value": 2, "delta_plus_0": 0.000390625e-9, "delta_minus_0": 0.000390625e-9, "decay_mode": "none", "decay_rate": 2},
+    # {"interface": ["Sapphire", "STO"], "direction": "right", "profile": "step", "layer_offset": [10, 10], "value": 4, "delta_plus_0": 0.0001953125e-9, "delta_minus_0": 0.0001953125e-9, "decay_mode": "none", "decay_rate": 2},
+    # {"interface": ["Sapphire", "STO"], "direction": "right", "profile": "step", "layer_offset": [11, 11], "value": 2, "delta_plus_0": 0.00009765625e-9, "delta_minus_0": 0.00009765625e-9, "decay_mode": "none", "decay_rate": 2},
+    # {"interface": ["Sapphire", "STO"], "direction": "right", "profile": "step", "layer_offset": [12, 12], "value": 4, "delta_plus_0": 0.000048828125e-9, "delta_minus_0": 0.000048828125e-9, "decay_mode": "none", "decay_rate": 2},
+    # {"interface": ["Sapphire", "STO"], "direction": "right", "profile": "step", "layer_offset": [13, 13], "value": 2, "delta_plus_0": 0.0000244140625e-9, "delta_minus_0": 0.0000244140625e-9, "decay_mode": "none", "decay_rate": 2},
+    # {"interface": ["Sapphire", "STO"], "direction": "right", "profile": "step", "layer_offset": [14, 14], "value": 4, "delta_plus_0": 0.00001220703125e-9, "delta_minus_0": 0.00001220703125e-9, "decay_mode": "none", "decay_rate": 2},
+    # {"interface": ["Sapphire", "STO"], "direction": "right", "profile": "step", "layer_offset": [15, 15], "value": 2, "delta_plus_0": 0.000006103515625e-9, "delta_minus_0": 0.000006103515625e-9, "decay_mode": "none", "decay_rate": 2},
+    # {"interface": ["Sapphire", "STO"], "direction": "right", "profile": "step", "layer_offset": [16, 16], "value": 4, "delta_plus_0": 0.0000030517578125e-9, "delta_minus_0": 0.0000030517578125e-9, "decay_mode": "none", "decay_rate": 2},
+    # {"interface": ["Sapphire", "STO"], "direction": "right", "profile": "step", "layer_offset": [17, 17], "value": 2, "delta_plus_0": 0.00000152587890625e-9, "delta_minus_0": 0.00000152587890625e-9, "decay_mode": "none", "decay_rate": 2},
+    # {"interface": ["Sapphire", "STO"], "direction": "right", "profile": "step", "layer_offset": [18, 18], "value": 4, "delta_plus_0": 0.000000762939453125e-9, "delta_minus_0": 0.000000762939453125e-9, "decay_mode": "none", "decay_rate": 2},
+    # {"interface": ["Sapphire", "STO"], "direction": "right", "profile": "step", "layer_offset": [19, 19], "value": 2, "delta_plus_0": 0.0000003814697265625e-9, "delta_minus_0": 0.0000003814697265625e-9, "decay_mode": "none", "decay_rate": 2},
+    # {"interface": ["Sapphire", "STO"], "direction": "right", "profile": "step", "layer_offset": [20, 20], "value": 4, "delta_plus_0": 0.00000019073486328125e-9, "delta_minus_0": 0.00000019073486328125e-9, "decay_mode": "none", "decay_rate": 2}
+
         
         {
         "interface": ["Sapphire", "STO"],
         "direction": "right",
-        "profile": "step",            # "delta" | "step" | "gaussian"
+        "profile": "delta",            # "delta" | "step" | "gaussian"
         "layer_offset": [4, 4],        # centred on the Ti plane of UC1
         "value": 4,                  # e/uc, see below
         "delta_plus_0": 0.1e-9,
@@ -243,57 +267,57 @@ config = {
     },
 
 
-            {
-        "interface": ["Sapphire", "STO"],
-        "direction": "right",
-        "profile": "step",            # "delta" | "step" | "gaussian"
-        "layer_offset": [5, 5],        # centred on the Ti plane of UC1
-        "value": 2,                  # e/uc, see below
-        "delta_plus_0": 0.05e-9,
-        "delta_minus_0": 0.05e-9,     # total separation 0.19 nm
-        "decay_mode": "none",
-        "decay_rate": 2
-    }
-    ,
+    #         {
+    #     "interface": ["Sapphire", "STO"],
+    #     "direction": "right",
+    #     "profile": "delta",            # "delta" | "step" | "gaussian"
+    #     "layer_offset": [5, 5],        # centred on the Ti plane of UC1
+    #     "value": 2,                  # e/uc, see below
+    #     "delta_plus_0": 0.05e-9,
+    #     "delta_minus_0": 0.05e-9,     # total separation 0.19 nm
+    #     "decay_mode": "none",
+    #     "decay_rate": 2
+    # }
+    # ,
 
-            {
-        "interface": ["Sapphire", "STO"],
-        "direction": "right",
-        "profile": "step",            # "delta" | "step" | "gaussian"
-        "layer_offset": [6, 6],        # centred on the Ti plane of UC1
-        "value": 4,                  # e/uc, see below
-        "delta_plus_0": 0.025e-9,
-        "delta_minus_0": 0.025e-9,     # total separation 0.19 nm
-        "decay_mode": "none",
-        "decay_rate": 2
-    }
-     ,
+    #         {
+    #     "interface": ["Sapphire", "STO"],
+    #     "direction": "right",
+    #     "profile": "delta",            # "delta" | "step" | "gaussian"
+    #     "layer_offset": [6, 6],        # centred on the Ti plane of UC1
+    #     "value": 4,                  # e/uc, see below
+    #     "delta_plus_0": 0.025e-9,
+    #     "delta_minus_0": 0.025e-9,     # total separation 0.19 nm
+    #     "decay_mode": "none",
+    #     "decay_rate": 2
+    # }
+    #  ,
     
-                {
-            "interface": ["Sapphire", "STO"],
-            "direction": "right",
-            "profile": "step",            # "delta" | "step" | "gaussian"
-            "layer_offset": [7, 7],        # centred on the Ti plane of UC1
-            "value": 2,                  # e/uc, see below
-            "delta_plus_0": 0.0125e-9,
-            "delta_minus_0": 0.0125e-9,     # total separation 0.19 nm
-            "decay_mode": "none",
-            "decay_rate": 2
-        }
+    #             {
+    #         "interface": ["Sapphire", "STO"],
+    #         "direction": "right",
+    #         "profile": "step",            # "delta" | "step" | "gaussian"
+    #         "layer_offset": [7, 7],        # centred on the Ti plane of UC1
+    #         "value": 2,                  # e/uc, see below
+    #         "delta_plus_0": 0.0125e-9,
+    #         "delta_minus_0": 0.0125e-9,     # total separation 0.19 nm
+    #         "decay_mode": "none",
+    #         "decay_rate": 2
+    #     }
 
-         ,
+    #      ,
         
-                    {
-                "interface": ["Sapphire", "STO"],
-                "direction": "right",
-                "profile": "step",            # "delta" | "step" | "gaussian"
-                "layer_offset": [8, 8],        # centred on the Ti plane of UC1
-                "value": 4,                  # e/uc, see below
-                "delta_plus_0": 0.00625e-9,
-                "delta_minus_0": 0.00625e-9,     # total separation 0.19 nm
-                "decay_mode": "none",
-                "decay_rate": 2
-            }
+    #                 {
+    #             "interface": ["Sapphire", "STO"],
+    #             "direction": "right",
+    #             "profile": "step",            # "delta" | "step" | "gaussian"
+    #             "layer_offset": [8, 8],        # centred on the Ti plane of UC1
+    #             "value": 4,                  # e/uc, see below
+    #             "delta_plus_0": 0.00625e-9,
+    #             "delta_minus_0": 0.00625e-9,     # total separation 0.19 nm
+    #             "decay_mode": "none",
+    #             "decay_rate": 2
+    #         }
     
     
     ]
