@@ -1,6 +1,6 @@
 # config.py
 """
-Configuration for Sapphire / STO Heterostructure Simulation.
+Configuration for Sapphire / STO Heterostructure Simulation.Hi
 
 Interface Profile:
 - Sapphire Substrate (Left): Dirichlet Boundary Condition (V = 0.0 V)
