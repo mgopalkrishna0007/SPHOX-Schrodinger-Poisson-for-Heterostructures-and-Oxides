@@ -124,8 +124,8 @@ config = {
                     "name": "SrO",   # Previously L2
                     "Ec": -3.86, "Ev": -7.1, 
                     "meff_e": 0.7, "meff_h": 1.0, 
-                    "eps_r": 330.0, 
-                    "is_eps_dynamic": False, 
+                    "eps_r": 300.0, 
+                    "is_eps_dynamic": True, 
                     "eps_dynamic_func": sto_field_dependent_epsilon, 
                     "t_layer": t_STO_half,
                     "layer_charge": 0.0  
@@ -135,8 +135,8 @@ config = {
                     "name": "TiO2",  # Previously L1
                     "Ec": -3.86, "Ev": -7.1, 
                     "meff_e": 0.7, "meff_h": 1.0, 
-                    "eps_r": 330.0, 
-                    "is_eps_dynamic": False, 
+                    "eps_r": 300.0, 
+                    "is_eps_dynamic": True, 
                     "eps_dynamic_func": sto_field_dependent_epsilon, 
                     "t_layer": t_STO_half,
                     "layer_charge": 0.0  
