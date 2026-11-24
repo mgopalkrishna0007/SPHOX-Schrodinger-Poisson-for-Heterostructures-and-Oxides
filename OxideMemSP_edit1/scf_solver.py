@@ -47,6 +47,7 @@ def run_self_consistent_loop(config, device):
     flat_layers = device["flat_layers"]
     layer_idx_map = device["layer_idx_map"]
     interface_idx = device["interface_idx"]
+    eps_frozen = device.get("eps_frozen")
     V0_c, V0_v = device["V0_c"], device["V0_v"]
     meff_e_arr, meff_h_arr = device["meff_e_arr"], device["meff_h_arr"]
     Epsi_arr = device["Epsi_arr"].copy()
@@ -58,16 +59,27 @@ def run_self_consistent_loop(config, device):
     V_space = create_function_space(z)
 
     scheme = create_mixing_scheme(config)
+    # How the field-dependent eps is updated:
+    #   "damped": eps from the previous OUTPUT field, with the mixer's own eps damping (original behaviour)
+    #   "input" : eps recomputed from the INPUT potential's field every loop (after eps_start), so each
+    #             loop is a pure function of Vin and the mixer only has to converge V
+    eps_update = str(config.get("eps_update", "damped")).lower()
+    if eps_update not in ("damped", "input"):
+        raise ValueError(f"Unknown eps_update '{eps_update}'. Choose 'damped' or 'input'.")
+    eps_start = config.get("eps_start", 0)
     Vin = np.zeros_like(z)
     convergence_met = False
 
-    print(f"\nStarting Self-Consistent Poisson-Schrödinger Solver... (mixing: {scheme.name})")
+    print(f"\nStarting Self-Consistent Poisson-Schrödinger Solver... (mixing: {scheme.name}, eps update: {eps_update})")
 
     try:
         # --- 8. Self-Consistent Loop ---
         for nloop in range(1, config["Nloops"] + 1):
             Vtot_c = V0_c + Vin
             Vtot_v = V0_v + Vin
+
+            if eps_update == "input" and nloop > eps_start:
+                Epsi_arr = compute_permittivity(flat_layers, layer_idx_map, np.abs(np.gradient(Vin, z)), eps_frozen)
 
             Ec, psic = Schroed1D_dolfin(V_space, Vtot_c, meff_e_arr, config["n"])
             Ev_inv, psiv = Schroed1D_dolfin(V_space, -Vtot_v, meff_h_arr, config["n"])
@@ -95,9 +107,13 @@ def run_self_consistent_loop(config, device):
 
             # --- Field-dependent dielectric constant ---
             E_Vm = np.abs(np.gradient(Vout, z))  # Absolute electric field in V/m
-            Epsi_new = compute_permittivity(flat_layers, layer_idx_map, E_Vm)
+            Epsi_new = compute_permittivity(flat_layers, layer_idx_map, E_Vm, eps_frozen)
 
-            Epsi_arr, eps_err = scheme.update_epsilon(nloop, Epsi_new, Epsi_arr)
+            if eps_update == "input":
+                # eps already follows Vin; report how far eps(E_out) still is from it
+                eps_err = np.max(np.abs(Epsi_new - Epsi_arr) / Epsi_arr) if nloop > eps_start else 0.0
+            else:
+                Epsi_arr, eps_err = scheme.update_epsilon(nloop, Epsi_new, Epsi_arr)
 
             Err = np.max(np.abs(Vout - Vin))
 

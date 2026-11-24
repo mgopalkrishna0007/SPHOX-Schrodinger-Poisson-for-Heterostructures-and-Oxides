@@ -72,6 +72,12 @@ config = {
     "mix_beta_eps": 0.1,    # fixed damping of the field-dependent dielectric constant
     "eps_start": 20,        # eps is only updated after this many loops (lets V settle first)
     "eps_tol": 1e-3,        # relative eps change required for convergence
+
+    # Field-dependent eps update (only matters for layers with "is_eps_dynamic": True)
+    #   "damped": eps from the previous output field, damped (anderson: mix_beta_eps after eps_start;
+    #             alpha: with alpha) -- original behaviour
+    #   "input" : eps recomputed from the input potential's field every loop after eps_start
+    "eps_update": "damped",
     # "mix_m": 3e-4,
     # "mix_beta": 0.05,
     # "mix_max_step": 0.05,
@@ -93,6 +99,9 @@ config = {
     #              sigma = sigma_frac * t_layer
     # Per-charge overrides: "profile" (+ optional "sigma_frac" or "sigma" in m) inside a
     # doping_profiles / dipole_configs entry, or "charge_profile" inside a layer dict (polar planes).
+    # Dipole layers keep their constant "eps_r" even when the layer is field dependent (eps(E)
+    # cannot carry the D of a dipole of more than ~0.6 e/uc). Add "eps_dynamic_inside": True to a
+    # dipole_configs entry to let eps(E) act inside that dipole layer anyway.
     "charge_profile_defaults": {
         "polar":  {"shape": "step", "sigma_frac": 0.25},
         "doping": {"shape": "step", "sigma_frac": 0.25},

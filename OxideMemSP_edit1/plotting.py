@@ -53,6 +53,21 @@ def _fixed_charge_deltas(res):
     return fixed_pos, fixed_neg, pos_idx, neg_idx
 
 
+def _draw_fixed_charges(ax, z, fixed_pos, fixed_neg, pos_idx, neg_idx):
+    """Fixed + / - charge drawn as the nodal profile the solver actually uses (piecewise linear).
+
+    A delta (one node) shows up as a thin spike, a step as a plateau over its layer and a
+    gaussian as a bump -- instead of one vertical line per node, which made step/gaussian
+    profiles look like a train of deltas.
+    """
+    if len(pos_idx) > 0:
+        ax.fill_between(z*1e9, 0, fixed_pos, color='darkred', alpha=0.35, lw=0)
+        ax.plot(z*1e9, fixed_pos, color='darkred', lw=1.5, label=r'Fixed $+$')
+    if len(neg_idx) > 0:
+        ax.fill_between(z*1e9, 0, -fixed_neg, color='darkblue', alpha=0.35, lw=0)
+        ax.plot(z*1e9, -fixed_neg, color='darkblue', lw=1.5, label=r'Fixed $-$')
+
+
 # =============================================================
 # SET 1: ORIGINAL PLOTS (WITH COLORS & HEATMAPS)
 # =============================================================
@@ -148,10 +163,7 @@ def plot_3_charge_distribution(res, config):
 
     fixed_pos, fixed_neg, pos_idx, neg_idx = _fixed_charge_deltas(res)
 
-    if len(pos_idx) > 0:
-        ax3.vlines(z[pos_idx]*1e9, 0, fixed_pos[pos_idx], color='darkred', linestyle='-', lw=2, label=r'Fixed $+$ (Delta)')
-    if len(neg_idx) > 0:
-        ax3.vlines(z[neg_idx]*1e9, 0, -fixed_neg[neg_idx], color='darkblue', linestyle='-', lw=2, label=r'Fixed $-$ (Delta)')
+    _draw_fixed_charges(ax3, z, fixed_pos, fixed_neg, pos_idx, neg_idx)
 
     ax3.set_yscale('symlog', linthresh=1e25)
     ax3.axhline(0, color='gray', ls='--', lw=1)
@@ -280,10 +292,7 @@ def plot_6_charge_distribution_clean(res, config):
 
     fixed_pos, fixed_neg, pos_idx, neg_idx = _fixed_charge_deltas(res)
 
-    if len(pos_idx) > 0:
-        ax6.vlines(z[pos_idx]*1e9, 0, fixed_pos[pos_idx], color='darkred', linestyle='-', lw=2, label=r'Fixed $+$ (Delta)')
-    if len(neg_idx) > 0:
-        ax6.vlines(z[neg_idx]*1e9, 0, -fixed_neg[neg_idx], color='darkblue', linestyle='-', lw=2, label=r'Fixed $-$ (Delta)')
+    _draw_fixed_charges(ax6, z, fixed_pos, fixed_neg, pos_idx, neg_idx)
 
     ax6.set_yscale('symlog', linthresh=1e25)
     ax6.axhline(0, color='gray', ls='--', lw=1)

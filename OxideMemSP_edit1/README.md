@@ -15,6 +15,17 @@ Modular version of `OxideMemSP_backup`. The physics and the plots are the same; 
 | `"anderson"` | `mix_m`, `mix_beta`, `mix_max_step`, `mix_beta_eps`, `eps_start`, `eps_tol` | Anderson mixing of V. The field-dependent ε gets its own fixed damping, which starts after `eps_start` loops. Convergence needs `Err < tol` and a relative ε change below `eps_tol`. |
 | `"alpha"` | `alpha`, `alpha_min`, `alpha_max`, `grow_factor`, `shrink_factor` | Adaptive linear mixing of V and ε. α shrinks when the error grows and grows when the error falls. Convergence needs `Err < tol`. |
 
+## Field-dependent permittivity ε(E)
+
+Layers with `"is_eps_dynamic": True` and an `"eps_dynamic_func"` get ε from the local |E| in every loop.
+
+- **The model has a ceiling on D.** The STO model ε(E)·ε₀·E can never exceed about 0.65 C/m², which is about 0.62 e/uc. Any fixed sheet charge larger than that inside a field-dependent layer has no self-consistent solution: ε falls towards 0 and the loop diverges. Before the loop starts, the solver now prints an `[eps(E) WARNING]` for every charge like this.
+- **Dipole layers keep a constant ε.** By default, a dipole layer uses its `eps_r` even if the layer is field dependent. To let ε(E) act inside one, set `"eps_dynamic_inside": True` on that dipole entry.
+- **`"eps_update"` sets how ε is updated.**
+  - `"damped"` (original): ε comes from the previous output field, damped by the mixer.
+  - `"input"`: ε is recomputed from the input potential each loop after `eps_start`.
+- **ε(E) must be continuous.** The fit has to join smoothly at 0.27 MV/cm. With `C = 736.30` it does; with `C = 719.307` it jumps from 300 to 237, and the loop oscillates.
+
 ## Fixed-charge profiles (in every config)
 
 Every fixed charge (polar plane, doping, dipole) has a shape inside its layer:
