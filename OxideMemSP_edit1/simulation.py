@@ -15,6 +15,7 @@ from material_properties import (
 )
 from fixed_charges import add_polar_plane_charges, add_doping_profiles, add_dipole_charges
 from scf_solver import run_self_consistent_loop
+from diagnostics import verify_device
 
 
 def build_device(config):
@@ -38,14 +39,17 @@ def build_device(config):
     # --- 4. Intrinsic Layer-Based Charges (Polar Planes) ---
     N_D_array, N_A_array = np.zeros(len(z)), np.zeros(len(z))
     add_polar_plane_charges(config, flat_layers, layer_boundaries, z, dz_node_arr, N_D_array, N_A_array)
+    N_D_polar, N_A_polar = N_D_array.copy(), N_A_array.copy()      # kept for the device check
 
     # --- 5. Interface-Relative Doping Injection ---
     add_doping_profiles(config, flat_layers, layer_boundaries, z, dz_node_arr, N_D_array, N_A_array)
 
     # --- 6. Split Charge / Dipole Polarization ---
-    N_D_dipole, N_A_dipole, P_layers = add_dipole_charges(config, flat_layers, layer_boundaries, z, dz_node_arr)
+    dipole_info = []
+    N_D_dipole, N_A_dipole, P_layers = add_dipole_charges(config, flat_layers, layer_boundaries, z, dz_node_arr,
+                                                          info=dipole_info)
 
-    return {
+    device = {
         "flat_layers": flat_layers,
         "layer_boundaries": layer_boundaries,
         "z": z,
@@ -57,7 +61,14 @@ def build_device(config):
         "N_D_array": N_D_array, "N_A_array": N_A_array,
         "N_D_dipole": N_D_dipole, "N_A_dipole": N_A_dipole,
         "P_layers": P_layers,
+        "dipole_info": dipole_info,
     }
+
+    # --- Device check: stack, mesh, layer map and every fixed charge (in e/uc) ---
+    if config.get("print_device_check", True):
+        verify_device(config, device, N_D_polar, N_A_polar, dipole_info)
+
+    return device
 
 
 def run_heterostructure_simulation(config):

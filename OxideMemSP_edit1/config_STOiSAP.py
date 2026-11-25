@@ -60,6 +60,8 @@ config = {
     "E_bind_D": 0.005,
     "E_bind_A": 0.025,
     "points_per_layer": 10,
+    "print_device_check": True,   # mesh / layer / charge (e/uc) consistency report before the SC loop
+    "print_polarization": True,   # inserted-dipole lines + polarization (screening) balance every loop
     
     # --- Mixing Settings ---
     # Choose the self-consistent mixing scheme: "anderson" or "alpha"

@@ -64,9 +64,11 @@ def add_doping_profiles(config, flat_layers, layer_boundaries, z, dz_node_arr, N
                 deposit(target_arr, val_e_per_uc / L["uc_area"], w, dz_node_arr)
 
 
-def add_dipole_charges(config, flat_layers, layer_boundaries, z, dz_node_arr):
+def add_dipole_charges(config, flat_layers, layer_boundaries, z, dz_node_arr, info=None):
     """--- 6. Split Charge / Dipole Polarization (Array Support) ---
     Returns (N_D_dipole, N_A_dipole, P_layers).
+    info : optional list; one dict per deposited dipole is appended (entry, offset, layer, q, separation,
+           dipole moment, node weights) for the diagnostics printed by the solver.
 
     delta    : +q on z_center - delta_plus, -q on z_center + delta_minus
     step     : +q uniform over [layer start, z_center], -q uniform over [z_center, layer end]
@@ -80,7 +82,7 @@ def add_dipole_charges(config, flat_layers, layer_boundaries, z, dz_node_arr):
     P_layers = []
 
     if "dipole_configs" in config:
-        for dip in config["dipole_configs"]:
+        for entry, dip in enumerate(config["dipole_configs"]):
             base_val_e_per_uc = dip["value"]
 
             indices = get_layer_indices_by_offset_range(
@@ -121,5 +123,15 @@ def add_dipole_charges(config, flat_layers, layer_boundaries, z, dz_node_arr):
                 zc_neg = np.sum(w_neg * z)
                 dipole_moment = current_val_e_per_uc * E_CHARGE * (zc_pos - zc_neg)
                 P_layers.append(dipole_moment / (L["uc_area"] * L["t_layer"]))
+
+                if info is not None:
+                    info.append({
+                        "entry": entry, "offset": dip["layer_offset"][0] + step, "layer": idx,
+                        "name": L["name"], "mat_name": L["mat_name"], "profile": shape,
+                        "q_e_per_uc": current_val_e_per_uc, "uc_area": L["uc_area"], "t_layer": L["t_layer"],
+                        "z_pos": zc_pos, "z_neg": zc_neg, "separation": zc_neg - zc_pos,
+                        "p_Cm": dipole_moment / L["uc_area"],          # dipole moment per area (C/m)
+                        "w_pos": w_pos, "w_neg": w_neg,
+                    })
 
     return N_D_dipole, N_A_dipole, P_layers

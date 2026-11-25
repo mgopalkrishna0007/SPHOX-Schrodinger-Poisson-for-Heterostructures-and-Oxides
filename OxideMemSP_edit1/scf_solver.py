@@ -12,6 +12,7 @@ from master_helper import find_Ef_general, Schroed1D_dolfin, Poisson_dolfin
 from material_properties import compute_permittivity
 from mixers import create_mixing_scheme
 from stack_geometry import E_CHARGE
+from diagnostics import polarization_report, reference_area
 
 
 def create_function_space(z):
@@ -24,20 +25,26 @@ def create_function_space(z):
 
 
 def print_loop_report(nloop, Err, Ef, config, Q_e, Q_h, Q_ND, Q_NA, Q_net, net_integral_charge,
-                      eps_old_int, eps_new_int, max_eps_change, rho_net, z, interface_idx):
+                      eps_old_int, eps_new_int, max_eps_change, rho_net, z, interface_idx,
+                      A_ref=None, ref_name="", extra_lines=()):
+    uc = (lambda q: f"  ({q*A_ref:+.4f} e/uc of {ref_name})") if A_ref else (lambda q: "")
     print(f"==========================================================================================")
     print(f" LOOP {nloop:03d} | Error: {Err:.3e} (Tol: {config['tol']:.1e}) | Ef: {Ef:.5f} eV")
     print(f"------------------------------------------------------------------------------------------")
-    print(f" 2D Electron Dens (np.sum N_n) : {-Q_e:.4e} m^-2")
-    print(f" 2D Hole Dens (np.sum P_m) : {+Q_h:.4e} m^-2")
-    print(f" 2D Donor Dens (Trapz ND+) : {+Q_ND:.4e} m^-2")
-    print(f" 2D Acceptor Dens (Trapz NA-) : {-Q_NA:.4e} m^-2")
+    print(f" 2D Electron Dens (np.sum N_n) : {-Q_e:.4e} m^-2{uc(-Q_e)}")
+    print(f" 2D Hole Dens (np.sum P_m) : {+Q_h:.4e} m^-2{uc(Q_h)}")
+    print(f" 2D Donor Dens (Trapz ND+) : {+Q_ND:.4e} m^-2{uc(Q_ND)}")
+    print(f" 2D Acceptor Dens (Trapz NA-) : {-Q_NA:.4e} m^-2{uc(-Q_NA)}")
     print(f" Net Charge to Poisson (Trapz) : {Q_net:.4e} m^-2")
     print(f" Q Residual (Convergence check): {net_integral_charge:.4e} m^-2")
     print(f" Interface Dielectric (Old -> New): {eps_old_int:.2f} -> {eps_new_int:.2f}")
     print(f" Max Dielectric Change across mesh: {max_eps_change:.4f}")
     print(f"------------------------------------------------------------------------------------------")
     print(f" Charge Dens @ Interface Node : {rho_net[interface_idx]:.4e} m^-3 (z = {z[interface_idx]*1e9:.2f} nm)")
+    if extra_lines:
+        print(f"------------------------------------------------------------------------------------------")
+        for line in extra_lines:
+            print(line)
     print(f"==========================================================================================\n")
 
 
@@ -71,6 +78,9 @@ def run_self_consistent_loop(config, device):
     # Converging before that would stop with eps never updated, so convergence is blocked until then.
     has_dynamic_eps = any(L.get("is_eps_dynamic", False) and "eps_dynamic_func" in L for L in flat_layers)
     eps_delayed = has_dynamic_eps and (eps_update == "input" or scheme.name == "anderson")
+    dipole_info = device.get("dipole_info", [])
+    print_pol = config.get("print_polarization", True)
+    A_ref, ref_name = reference_area(device, dipole_info)
     Vin = np.zeros_like(z)
     convergence_met = False
 
@@ -109,6 +119,8 @@ def run_self_consistent_loop(config, device):
                 config.get("bc_right_type", "neumann"), config.get("V_right_applied", 0.0)
             )
 
+            eps_poisson = Epsi_arr          # eps actually used by this Poisson solve (for the balance)
+
             # --- Field-dependent dielectric constant ---
             E_Vm = np.abs(np.gradient(Vout, z))  # Absolute electric field in V/m
             Epsi_new = compute_permittivity(flat_layers, layer_idx_map, E_Vm, eps_frozen)
@@ -138,8 +150,14 @@ def run_self_consistent_loop(config, device):
             eps_new_int = Epsi_new[interface_idx]
             max_eps_change = np.max(np.abs(Epsi_new - Epsi_arr))
 
+            pol_lines = []
+            if print_pol:
+                pol_lines, pol = polarization_report(config, device, dipole_info, Vout, eps_poisson,
+                                                     ND_plus_z, NA_minus_z, N_3D, P_3D)
+
             print_loop_report(nloop, Err, Ef, config, Q_e, Q_h, Q_ND, Q_NA, Q_net, net_integral_charge,
-                              eps_old_int, eps_new_int, max_eps_change, rho_net, z, interface_idx)
+                              eps_old_int, eps_new_int, max_eps_change, rho_net, z, interface_idx,
+                              A_ref=A_ref, ref_name=ref_name, extra_lines=pol_lines)
 
             if scheme.is_converged(Err, eps_err) and not (eps_delayed and nloop <= eps_start):
                 convergence_met = True

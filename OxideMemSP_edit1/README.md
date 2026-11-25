@@ -45,6 +45,26 @@ Every fixed charge (polar plane, doping, dipole) has a shape inside its layer:
 
 `charge_profiles_example.png` compares the three shapes at the STOiSAP interface.
 
+## Printed diagnostics
+
+Two switches, in every config, control the extra output:
+
+| Switch | When it prints | What it shows |
+|---|---|---|
+| `"print_device_check"` | once, before the loop starts | Stack and mesh: layer count, thickness, elements per layer, whether every boundary, centre and dipole point is a mesh node, and whether every node carries its own layer's properties. Charges: every polar plane, doping and dipole in e/uc of its host layer, with its sheet density, the charge actually placed, and whether it stays inside its layer. Arrays: whether the charge arrays equal the sum of the individual charges. Totals: the net fixed charge, the electrons that charge neutrality needs, and any suspicious `uc_area`. |
+| `"print_polarization"` | every loop | One line per inserted dipole: offset, q, separation, dipole moment and P in µC/cm². Then the polarization balance. |
+
+**The polarization balance.** Every term is a dipole moment per area, printed in e·nm/uc. The origin is the end of the stack where the potential is fixed (the Dirichlet end).
+
+```
+inserted + free charges (ions/doping + electrons/holes) + lattice + eps0*dU = 0
+```
+
+- **Lattice** is ∫ ε₀(ε−1)E dz, the dielectric's own polarization.
+- **ε₀·ΔU** is what is left over, i.e. the potential step across the whole stack.
+- **"Screening"** is net − inserted, which equals free charges + lattice.
+- The sum check is evaluated with the same piecewise-linear integrals FEniCS assembles, so it should print about 1e-12.
+
 ## Files
 
 | File | Contents |
@@ -61,4 +81,5 @@ Every fixed charge (polar plane, doping, dipole) has a shape inside its layer:
 | `scf_solver.py` | FEniCS initialization and the self-consistent loop |
 | `simulation.py` | `build_device` and `run_heterostructure_simulation` |
 | `thickness_sweep.py` | Critical-thickness sweep |
+| `diagnostics.py` | Device check at start-up, dipole lines and polarization balance every loop |
 | `plotting.py` | `add_layer_background`, plots 1–7, sweep plot |
