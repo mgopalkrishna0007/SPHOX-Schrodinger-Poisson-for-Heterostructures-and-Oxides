@@ -59,7 +59,7 @@ config = {
     "fully_ionized_flag": True,
     "E_bind_D": 0.005,
     "E_bind_A": 0.025,
-    "points_per_layer": 5,
+    "points_per_layer": 10,
     
     # --- Mixing Settings ---
     # Choose the self-consistent mixing scheme: "anderson" or "alpha"
@@ -75,7 +75,7 @@ config = {
 
     # Field-dependent eps update (only matters for layers with "is_eps_dynamic": True)
     #   "input" : eps recomputed from the input potential's field every loop after eps_start
-    #             (recommended: anderson then converges reliably, e.g. STOiGTO 87 loops vs never)
+    #             (recommended: anderson then converges reliably)
     #   "damped": eps from the previous output field, damped (anderson: mix_beta_eps after eps_start;
     #             alpha: with alpha) -- original behaviour
     "eps_update": "input",
@@ -185,7 +185,7 @@ config = {
     # 10 layers of Sapphire substrate + 10 layers of STO film
     # "stack_definition": ["Sapphire*30", "STO*77"],
 
-    "stack_definition": ["Sapphire*10","STO*77"],
+    "stack_definition": ["Sapphire*10","STO*77", "Vac*1"],
 
 
     "thickness_sweep": {
