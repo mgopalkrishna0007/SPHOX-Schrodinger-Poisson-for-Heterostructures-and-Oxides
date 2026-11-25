@@ -237,61 +237,7 @@ config = {
         "delta_minus_0": 0.1e-9,     # total separation 0.19 nm
         "decay_mode": "none",
         "decay_rate": 2
-    },
+    }
 
-
-    #         {
-    #     "interface": ["Sapphire", "STO"],
-    #     "direction": "right",
-    #     "profile": "delta",            # "delta" | "step" | "gaussian"
-    #     "layer_offset": [5, 5],        # centred on the Ti plane of UC1
-    #     "value": 2,                  # e/uc, see below
-    #     "delta_plus_0": 0.05e-9,
-    #     "delta_minus_0": 0.05e-9,     # total separation 0.19 nm
-    #     "decay_mode": "none",
-    #     "decay_rate": 2
-    # }
-    # ,
-
-    #         {
-    #     "interface": ["Sapphire", "STO"],
-    #     "direction": "right",
-    #     "profile": "delta",            # "delta" | "step" | "gaussian"
-    #     "layer_offset": [6, 6],        # centred on the Ti plane of UC1
-    #     "value": 4,                  # e/uc, see below
-    #     "delta_plus_0": 0.025e-9,
-    #     "delta_minus_0": 0.025e-9,     # total separation 0.19 nm
-    #     "decay_mode": "none",
-    #     "decay_rate": 2
-    # }
-    #  ,
-    
-    #             {
-    #         "interface": ["Sapphire", "STO"],
-    #         "direction": "right",
-    #         "profile": "step",            # "delta" | "step" | "gaussian"
-    #         "layer_offset": [7, 7],        # centred on the Ti plane of UC1
-    #         "value": 2,                  # e/uc, see below
-    #         "delta_plus_0": 0.0125e-9,
-    #         "delta_minus_0": 0.0125e-9,     # total separation 0.19 nm
-    #         "decay_mode": "none",
-    #         "decay_rate": 2
-    #     }
-
-    #      ,
-        
-    #                 {
-    #             "interface": ["Sapphire", "STO"],
-    #             "direction": "right",
-    #             "profile": "step",            # "delta" | "step" | "gaussian"
-    #             "layer_offset": [8, 8],        # centred on the Ti plane of UC1
-    #             "value": 4,                  # e/uc, see below
-    #             "delta_plus_0": 0.00625e-9,
-    #             "delta_minus_0": 0.00625e-9,     # total separation 0.19 nm
-    #             "decay_mode": "none",
-    #             "decay_rate": 2
-    #         }
-    
-    
     ]
 }
