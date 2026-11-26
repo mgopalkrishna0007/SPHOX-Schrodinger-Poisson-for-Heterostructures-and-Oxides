@@ -74,6 +74,24 @@ config = {
         "dipole": {"shape": "delta", "sigma_frac": 0.25},
     },
 
+    # --- Plot Settings ---
+    "plot_settings": {
+        # Shading color of each material in the colored plots (any matplotlib color);
+        # materials not listed get one automatic color per atomic layer
+        "material_colors": {
+            "LLO": "#2a9d8f",
+            "SBO": "#e9c46a",
+        },
+        "background_alpha": 0.35,      # opacity of the layer shading (0 = invisible, 1 = solid)
+        # Band plots: y-axis spans the material with the largest band gap (vacuum ignored).
+        "band_ylim_exclude": [],       # materials to ignore for that, e.g. ["Vac"]
+        "max_real_gap_eV": 20.0,       # gaps above this are treated as vacuum/barrier and ignored
+        "band_ylim": None,             # or (ymin, ymax) in eV to fix the window by hand
+        # Density plots (log scale, m^-3): lower limit
+        "density_floor": None,         # fixed lower limit in m^-3, or None -> top * density_decades
+        "density_decades": 1e-10,      # used when density_floor is None
+    },
+
     # --- Boundary Conditions ---
     "bc_left_type": 'dirichlet', 
     "V_left_applied": 0.0,

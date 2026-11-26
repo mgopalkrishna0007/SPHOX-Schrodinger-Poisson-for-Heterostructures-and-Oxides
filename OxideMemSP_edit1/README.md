@@ -65,6 +65,17 @@ inserted + free charges (ions/doping + electrons/holes) + lattice + eps0*dU = 0
 - **"Screening"** is net − inserted, which equals free charges + lattice.
 - The sum check is evaluated with the same piecewise-linear integrals FEniCS assembles, so it should print about 1e-12.
 
+## Plot settings (in every config, `"plot_settings"`)
+
+- **What the density plots show.** Every density plot is a 3D volume density in m⁻³ (N_3D, P_3D, ρ_net, fixed charge), not a sheet density, and uses a **log** axis.
+  - Signed quantities are shown as magnitudes. |ρ_net| is solid where ρ > 0 and dashed where ρ < 0.
+  - Fixed + charges are dark red and fixed − charges are dark blue.
+  - The lower limit is `density_floor` in m⁻³, or `top × density_decades` (10 decades by default) when `density_floor` is None.
+- **Band-plot energy window** (plots 1, 2 and 5). It spans the bent and flat bands of the material with the **largest real band gap**, plus Ef.
+  - Gaps above `max_real_gap_eV` (20 eV) count as vacuum and are ignored, as are materials listed in `band_ylim_exclude`.
+  - `band_ylim = (ymin, ymax)` fixes the window by hand.
+- **Layer shading.** `material_colors` gives each material one color (any matplotlib color). `background_alpha` sets the shading opacity, from 0 (invisible) to 1 (solid).
+
 ## Files
 
 | File | Contents |
