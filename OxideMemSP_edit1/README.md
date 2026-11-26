@@ -81,7 +81,7 @@ Each key matches the figure title:
 | `charge_distribution` | Charge Distribution (plain background) |
 | `electric_field_dielectric_constant` | Electric Field and Dielectric Constant |
 
-The earlier key names (`carrier_heatmap`, `cb_wavefunctions`, …) still work. Every axis has minor ticks: evenly spaced on linear axes, 2–9 within each decade on log axes.
+The earlier key names (`carrier_heatmap`, `cb_wavefunctions`, …) still work. Every line in every plot has the same width (`plot_settings["linewidth"]`, default 2.0; only the thin layer-centre lines of the shading stay thin). Every axis has minor ticks: evenly spaced on linear axes, 2–9 within each decade on log axes.
 
 **The two charge distribution plots have two y-axes:**
 - **Left axis (linear, signed):** fixed charges (polar planes, doping, dipoles; + red / − blue) and ρ_net.

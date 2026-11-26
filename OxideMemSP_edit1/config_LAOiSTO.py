@@ -124,6 +124,7 @@ config = {
             "LAO": "#2a9d8f",
         },
         "background_alpha": 0.35,      # opacity of the layer shading (0 = invisible, 1 = solid)
+        "linewidth": 2.0,              # one linewidth for every line in every plot
         # Band plots: y-axis spans the material with the largest band gap (vacuum ignored).
         "band_ylim_exclude": [],       # materials to ignore for that, e.g. ["Vac"]
         "max_real_gap_eV": 20.0,       # gaps above this are treated as vacuum/barrier and ignored
