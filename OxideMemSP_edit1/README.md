@@ -69,17 +69,21 @@ inserted + free charges (ions/doping + electrons/holes) + lattice + eps0*dU = 0
 
 Set each plot to `True` (draw it) or `False` (skip it):
 
-| Key | Plot |
-|---|---|
-| `band_diagram_wavefunctions` | 1: band diagram with every wavefunction drawn dotted. **Off by default.** |
-| `carrier_heatmap` | 2: bands with the carrier spatial-distribution heatmap |
-| `charge_distribution` | 3: charge distribution profile, coloured background |
-| `cb_wavefunctions` | 4: conduction band with electron wavefunctions (fixed window) |
-| `band_carrier_density` | 5: band diagram with 1D carrier density (log right axis) |
-| `charge_distribution_clean` | 6: charge distribution profile, plain background |
-| `field_dielectric` | 7: electric field and dielectric constant |
+Each key matches the figure title:
 
-**The charge distribution plots (3 and 6) have two y-axes:**
+| Key | Figure title |
+|---|---|
+| `band_diagram_wavefunctions` | Band Diagram and Wavefunctions (**off by default**) |
+| `carrier_distribution_heatmap` | Carrier Distribution Heatmap |
+| `charge_distribution_shaded` | Charge Distribution with Layer Shading |
+| `conduction_band_wavefunctions` | Conduction Band and Electron Wavefunctions (fixed window) |
+| `band_diagram_carrier_density` | Band Diagram and Carrier Density (log right axis) |
+| `charge_distribution` | Charge Distribution (plain background) |
+| `electric_field_dielectric_constant` | Electric Field and Dielectric Constant |
+
+The earlier key names (`carrier_heatmap`, `cb_wavefunctions`, …) still work. Every axis has minor ticks: evenly spaced on linear axes, 2–9 within each decade on log axes.
+
+**The two charge distribution plots have two y-axes:**
 - **Left axis (linear, signed):** fixed charges (polar planes, doping, dipoles; + red / − blue) and ρ_net.
 - **Right axis (log):** N_3D and P_3D.
 - `charge_xlim = (zmin, zmax)` zooms in, in nm. `charge_linear_ylim = (ymin, ymax)` fixes the left axis in m⁻³, for example to see a small doping next to tall dipole spikes.
