@@ -74,6 +74,17 @@ config = {
         "dipole": {"shape": "delta", "sigma_frac": 0.25},
     },
 
+    # --- Plots to draw (True = draw, False = skip) ---
+    "plots": {
+        "band_diagram_wavefunctions": False,  # 1 band diagram + every wavefunction drawn as dotted lines
+        "carrier_heatmap": True,              # 2 bands + carrier spatial distribution heatmap
+        "charge_distribution": True,          # 3 charge distribution profile, coloured layer background
+        "cb_wavefunctions": True,             # 4 conduction band + electron wavefunctions (fixed window)
+        "band_carrier_density": True,         # 5 band diagram + 1D carrier density (log right axis)
+        "charge_distribution_clean": True,    # 6 charge distribution profile, plain background
+        "field_dielectric": True,             # 7 electric field + dielectric constant vs z
+    },
+
     # --- Plot Settings ---
     "plot_settings": {
         # Shading color of each material in the colored plots (any matplotlib color);
@@ -90,6 +101,8 @@ config = {
         # Density plots (log scale, m^-3): lower limit
         "density_floor": None,         # fixed lower limit in m^-3, or None -> top * density_decades
         "density_decades": 1e-10,      # used when density_floor is None
+        "charge_linear_ylim": None,    # charge-distribution left (linear) axis: (ymin, ymax) in m^-3, or None
+        "charge_xlim": None,           # charge-distribution plots: (zmin, zmax) in nm to zoom in, or None
     },
 
     # --- Boundary Conditions ---
