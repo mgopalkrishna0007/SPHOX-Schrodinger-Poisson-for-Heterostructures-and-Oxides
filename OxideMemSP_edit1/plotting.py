@@ -442,6 +442,22 @@ def add_minor_ticks(fig):
         ax.tick_params(which="minor", length=3, width=0.8)
 
 
+def apply_uniform_linewidth(fig, lw=2.0):
+    """Give every line in the figure (data curves, band edges, wavefunctions, Ef, subband levels,
+    zero lines, interface markers) and every legend entry the same linewidth.
+    The thin per-layer centre lines of the layer shading (zorder -99) are background and are kept."""
+    for ax in fig.axes:
+        for line in ax.get_lines():
+            if line.get_zorder() > -99:
+                line.set_linewidth(lw)
+        leg = ax.get_legend()
+        if leg is not None:
+            handles = leg.legend_handles if hasattr(leg, "legend_handles") else leg.legendHandles
+            for h in handles:
+                if type(h).__name__ == "Line2D":
+                    h.set_linewidth(lw)
+
+
 def plot_all_results(res, config, show=True):
     """Draw the plots switched on in config["plots"] (missing keys use DEFAULT_PLOTS) and show them."""
     user = config.get("plots") or {}
@@ -457,8 +473,10 @@ def plot_all_results(res, config, show=True):
     if unknown:
         print(f"[plots] unknown plot key(s) in config['plots']: {sorted(unknown)}; valid: {list(PLOTS)}")
     figs = [func(res, config) for key, func in PLOTS.items() if selection.get(key, False)]
+    lw = float(_plot_settings(config).get("linewidth", 2.0))
     for fig in figs:
         add_minor_ticks(fig)
+        apply_uniform_linewidth(fig, lw)
     if show:
         plt.show()
     return figs
@@ -479,6 +497,7 @@ def plot_thickness_sweep(uc_array, e_per_uc_array, fixed_stack, sweep_mat, show=
     ax.grid(True, alpha=0.4)
     ax.legend()
 
+    apply_uniform_linewidth(fig)
     # e/uc is best viewed on a linear scale to see it asymptotically approach 0.5
     fig.tight_layout()
     if show:
