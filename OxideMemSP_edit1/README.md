@@ -65,9 +65,28 @@ inserted + free charges (ions/doping + electrons/holes) + lattice + eps0*dU = 0
 - **"Screening"** is net − inserted, which equals free charges + lattice.
 - The sum check is evaluated with the same piecewise-linear integrals FEniCS assembles, so it should print about 1e-12.
 
+## Choosing plots (in every config, `"plots"`)
+
+Set each plot to `True` (draw it) or `False` (skip it):
+
+| Key | Plot |
+|---|---|
+| `band_diagram_wavefunctions` | 1: band diagram with every wavefunction drawn dotted. **Off by default.** |
+| `carrier_heatmap` | 2: bands with the carrier spatial-distribution heatmap |
+| `charge_distribution` | 3: charge distribution profile, coloured background |
+| `cb_wavefunctions` | 4: conduction band with electron wavefunctions (fixed window) |
+| `band_carrier_density` | 5: band diagram with 1D carrier density (log right axis) |
+| `charge_distribution_clean` | 6: charge distribution profile, plain background |
+| `field_dielectric` | 7: electric field and dielectric constant |
+
+**The charge distribution plots (3 and 6) have two y-axes:**
+- **Left axis (linear, signed):** fixed charges (polar planes, doping, dipoles; + red / − blue) and ρ_net.
+- **Right axis (log):** N_3D and P_3D.
+- `charge_xlim = (zmin, zmax)` zooms in, in nm. `charge_linear_ylim = (ymin, ymax)` fixes the left axis in m⁻³, for example to see a small doping next to tall dipole spikes.
+
 ## Plot settings (in every config, `"plot_settings"`)
 
-- **What the density plots show.** Every density plot is a 3D volume density in m⁻³ (N_3D, P_3D, ρ_net, fixed charge), not a sheet density, and uses a **log** axis.
+- **What the density plots show.** Every density plot is a 3D volume density in m⁻³ (N_3D, P_3D, ρ_net, fixed charge), not a sheet density. Carrier densities use a **log** axis; the charge distribution plots add a linear signed axis (see above).
   - Signed quantities are shown as magnitudes. |ρ_net| is solid where ρ > 0 and dashed where ρ < 0.
   - Fixed + charges are dark red and fixed − charges are dark blue.
   - The lower limit is `density_floor` in m⁻³, or `top × density_decades` (10 decades by default) when `density_floor` is None.

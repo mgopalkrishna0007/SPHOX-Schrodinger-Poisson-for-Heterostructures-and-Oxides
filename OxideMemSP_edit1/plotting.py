@@ -115,32 +115,49 @@ def _fixed_charge_deltas(res):
     return fixed_pos, fixed_neg, pos_idx, neg_idx
 
 
-def _draw_fixed_charges(ax, z, fixed_pos, fixed_neg, pos_idx, neg_idx, floor):
-    """Fixed + / - charge magnitudes (log axis) drawn as the nodal profile the solver uses:
-    a delta shows up as a thin spike, a step as a plateau over its layer, a gaussian as a bump."""
-    if len(pos_idx) > 0:
-        ax.fill_between(z*1e9, floor, np.maximum(fixed_pos, floor), color='darkred', alpha=0.30, lw=0)
-        _log_curve(ax, z*1e9, fixed_pos, floor, color='darkred', lw=1.5, label=r'Fixed $+$ ($N_D^+$ + dipole $+$)')
-    if len(neg_idx) > 0:
-        ax.fill_between(z*1e9, floor, np.maximum(fixed_neg, floor), color='darkblue', alpha=0.30, lw=0)
-        _log_curve(ax, z*1e9, fixed_neg, floor, color='darkblue', lw=1.5, label=r'Fixed $-$ ($N_A^-$ + dipole $-$)')
+def _charge_distribution(ax, res, config, title):
+    """Charge distribution with two y-axes (all volume densities, m^-3):
 
-
-def _charge_distribution(ax, res, config):
-    """Charge densities (m^-3, volume densities) on a log scale: magnitudes, sign shown by color/style."""
+    left  (linear, signed): fixed charges -- polar planes, doping and dipoles (+ red / - blue) -- and
+                            the net charge density rho_net, so signs and dopings stay visible
+    right (log): electron density N_3D and hole density P_3D
+    plot_settings["charge_linear_ylim"] = (ymin, ymax) fixes the left axis (e.g. to see a doping step
+    next to much taller delta-dipole spikes); plot_settings["charge_xlim"] = (zmin, zmax) in nm zooms in.
+    """
     z, N_3D, P_3D, rho_net = res["z"], res["N_3D"], res["P_3D"], res["rho_net"]
     fixed_pos, fixed_neg, pos_idx, neg_idx = _fixed_charge_deltas(res)
-    floor, top = density_window(config, N_3D, P_3D, rho_net, fixed_pos, fixed_neg)
+    x = z * 1e9
 
-    _log_curve(ax, z*1e9, N_3D, floor, lw=2, color='blue', label=r'$N_{3D}$ (electrons, $-$)')
-    _log_curve(ax, z*1e9, P_3D, floor, lw=2, color='red', label=r'$P_{3D}$ (holes, $+$)')
-    _log_curve(ax, z*1e9, rho_net, floor, lw=2, color='black', alpha=0.8, label=r'$|\rho_{net}|$, $\rho_{net}>0$')
-    _log_curve(ax, z*1e9, -rho_net, floor, lw=2, color='black', alpha=0.8, ls='--', label=r'$|\rho_{net}|$, $\rho_{net}<0$')
-    _draw_fixed_charges(ax, z, fixed_pos, fixed_neg, pos_idx, neg_idx, floor)
+    # --- left: linear, signed ---
+    if len(pos_idx) > 0:
+        ax.fill_between(x, 0, fixed_pos, color='darkred', alpha=0.35, lw=0)
+        ax.plot(x, fixed_pos, color='darkred', lw=1.5, label=r'Fixed $+$ ($N_D^+$ + dipole $+$)')
+    if len(neg_idx) > 0:
+        ax.fill_between(x, 0, -fixed_neg, color='darkblue', alpha=0.35, lw=0)
+        ax.plot(x, -fixed_neg, color='darkblue', lw=1.5, label=r'Fixed $-$ ($N_A^-$ + dipole $-$)')
+    ax.plot(x, rho_net, color='black', lw=1.2, alpha=0.8, label=r'$\rho_{net}$ (signed)')
+    ax.axhline(0, color='gray', ls='--', lw=1)
+    lim = _plot_settings(config).get("charge_linear_ylim")
+    if lim:
+        ax.set_ylim(*lim)
+    xlim = _plot_settings(config).get("charge_xlim") or (0, x[-1])
+    ax.set(xlim=tuple(xlim), xlabel='z (nm)', ylabel=r'Fixed / net charge density (m$^{-3}$, linear)', title=title)
+    ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
+    ax.grid(alpha=0.3)
 
-    ax.set_yscale('log')
-    ax.set_ylim(floor, top)
-    ax.set_xlim(0, z[-1]*1e9)
+    # --- right: log, magnitudes ---
+    axr = ax.twinx()
+    floor, top = density_window(config, N_3D, P_3D)
+    _log_curve(axr, x, N_3D, floor, lw=2, color='blue', label=r'$N_{3D}$ (electrons)')
+    _log_curve(axr, x, P_3D, floor, lw=2, color='red', label=r'$P_{3D}$ (holes)')
+    axr.set_yscale('log')
+    axr.set_ylim(floor, top)
+    axr.set_ylabel(r'Carrier density (m$^{-3}$, log)')
+
+    h1, l1 = ax.get_legend_handles_labels()
+    h2, l2 = axr.get_legend_handles_labels()
+    ax.legend(h1 + h2, l1 + l2, loc='upper left', bbox_to_anchor=(1.10, 1.0), fontsize=9)
+    return axr
 
 
 # =============================================================
@@ -229,13 +246,10 @@ def plot_3_charge_distribution(res, config):
     z, N_3D, P_3D, rho_net = res["z"], res["N_3D"], res["P_3D"], res["rho_net"]
     flat_layers = res["flat_layers"]
 
-    fig3, ax3 = plt.subplots(figsize=(10, 5))
+    fig3, ax3 = plt.subplots(figsize=(12, 5))
     add_layer_background(ax3, flat_layers, show_colors=True, config=config)
 
-    _charge_distribution(ax3, res, config)
-    ax3.set(xlabel='z (nm)', ylabel=r'Charge Density |$\rho$| (m$^{-3}$, 3D)', title='[Original] Charge Distribution Profile')
-    ax3.grid(alpha=0.3)
-    ax3.legend(loc='upper right', bbox_to_anchor=(1.25, 1.0))
+    _charge_distribution(ax3, res, config, '[Original] Charge Distribution Profile')
     fig3.tight_layout()
     return fig3
 
@@ -351,13 +365,10 @@ def plot_6_charge_distribution_clean(res, config):
     z, N_3D, P_3D, rho_net = res["z"], res["N_3D"], res["P_3D"], res["rho_net"]
     flat_layers = res["flat_layers"]
 
-    fig6, ax6 = plt.subplots(figsize=(10, 5))
+    fig6, ax6 = plt.subplots(figsize=(12, 5))
     add_layer_background(ax6, flat_layers, show_colors=False, config=config)
 
-    _charge_distribution(ax6, res, config)
-    ax6.set(xlabel='z (nm)', ylabel=r'Charge Density |$\rho$| (m$^{-3}$, 3D)', title='[Clean] Charge Distribution Profile')
-    ax6.grid(alpha=0.3)
-    ax6.legend(loc='upper right', bbox_to_anchor=(1.25, 1.0))
+    _charge_distribution(ax6, res, config, '[Clean] Charge Distribution Profile')
     fig6.tight_layout()
     return fig6
 
@@ -393,17 +404,27 @@ def plot_7_field_and_dielectric(res, config):
     return fig7
 
 
+# Plot keys used in config["plots"] (True = draw, False = skip)
+PLOTS = {
+    "band_diagram_wavefunctions":   plot_1_band_diagram_wavefunctions,     # 1 bands + every wavefunction (dotted)
+    "carrier_heatmap":              plot_2_density_heatmap,                # 2 bands + carrier spatial distribution heatmap
+    "charge_distribution":          plot_3_charge_distribution,            # 3 charge distribution, coloured background
+    "cb_wavefunctions":             plot_4_conduction_band_wavefunctions,  # 4 conduction band + electron wavefunctions
+    "band_carrier_density":         plot_5_band_diagram_carrier_density,   # 5 bands + 1D carrier density (log)
+    "charge_distribution_clean":    plot_6_charge_distribution_clean,      # 6 charge distribution, plain background
+    "field_dielectric":             plot_7_field_and_dielectric,           # 7 electric field + dielectric constant
+}
+DEFAULT_PLOTS = {k: True for k in PLOTS}
+DEFAULT_PLOTS["band_diagram_wavefunctions"] = False
+
+
 def plot_all_results(res, config, show=True):
-    """Draw plots 1-7 of a single run (and show them)."""
-    figs = [
-        plot_1_band_diagram_wavefunctions(res, config),
-        plot_2_density_heatmap(res, config),
-        plot_3_charge_distribution(res, config),
-        plot_4_conduction_band_wavefunctions(res, config),
-        plot_5_band_diagram_carrier_density(res, config),
-        plot_6_charge_distribution_clean(res, config),
-        plot_7_field_and_dielectric(res, config),
-    ]
+    """Draw the plots switched on in config["plots"] (missing keys use DEFAULT_PLOTS) and show them."""
+    selection = {**DEFAULT_PLOTS, **(config.get("plots") or {})}
+    unknown = set(selection) - set(PLOTS)
+    if unknown:
+        print(f"[plots] unknown plot key(s) in config['plots']: {sorted(unknown)}; valid: {list(PLOTS)}")
+    figs = [func(res, config) for key, func in PLOTS.items() if selection.get(key, False)]
     if show:
         plt.show()
     return figs
