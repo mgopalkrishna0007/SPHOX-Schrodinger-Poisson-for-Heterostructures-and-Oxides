@@ -119,13 +119,13 @@ config = {
 
     # --- Plots to draw (True = draw, False = skip) ---
     "plots": {
-        "band_diagram_wavefunctions": False,  # 1 band diagram + every wavefunction drawn as dotted lines
-        "carrier_heatmap": True,              # 2 bands + carrier spatial distribution heatmap
-        "charge_distribution": True,          # 3 charge distribution profile, coloured layer background
-        "cb_wavefunctions": True,             # 4 conduction band + electron wavefunctions (fixed window)
-        "band_carrier_density": True,         # 5 band diagram + 1D carrier density (log right axis)
-        "charge_distribution_clean": True,    # 6 charge distribution profile, plain background
-        "field_dielectric": True,             # 7 electric field + dielectric constant vs z
+        "band_diagram_wavefunctions": False,          # Band Diagram and Wavefunctions
+        "carrier_distribution_heatmap": True,         # Carrier Distribution Heatmap
+        "charge_distribution_shaded": True,           # Charge Distribution with Layer Shading
+        "conduction_band_wavefunctions": True,        # Conduction Band and Electron Wavefunctions
+        "band_diagram_carrier_density": True,         # Band Diagram and Carrier Density
+        "charge_distribution": True,                  # Charge Distribution
+        "electric_field_dielectric_constant": True,   # Electric Field and Dielectric Constant
     },
 
     # --- Plot Settings ---

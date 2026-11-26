@@ -161,11 +161,11 @@ def _charge_distribution(ax, res, config, title):
 
 
 # =============================================================
-# SET 1: ORIGINAL PLOTS (WITH COLORS & HEATMAPS)
+# PLOTS WITH LAYER SHADING
 # =============================================================
 
 def plot_1_band_diagram_wavefunctions(res, config):
-    """--- PLOT 1: Original Band Diagram + Wavefunctions ---"""
+    """Band Diagram and Wavefunctions (config key: band_diagram_wavefunctions)"""
     z, Vtot_c, Vtot_v = res["z"], res["Vtot_c"], res["Vtot_v"]
     V0_c, V0_v, Ef = res["V0_c"], res["V0_v"], res["Ef"]
     Ec, Ev, psic, psiv = res["Ec"], res["Ev"], res["psic"], res["psiv"]
@@ -199,7 +199,7 @@ def plot_1_band_diagram_wavefunctions(res, config):
                 ax1.axhline(Ev[i], color='red', linestyle='-', lw=0.5, alpha=0.3, zorder=4)
 
     ax1.set(xlim=(0, z[-1]*1e9), ylim=band_ylim(res, config),
-            xlabel='z (nm)', ylabel='Energy (eV)', title='[Original] Band Diagram & Individual Wavefunctions')
+            xlabel='z (nm)', ylabel='Energy (eV)', title='Band Diagram and Wavefunctions')
     ax1.grid(alpha=0.3)
     ax1.legend(loc='center right')
     fig1.tight_layout()
@@ -207,7 +207,7 @@ def plot_1_band_diagram_wavefunctions(res, config):
 
 
 def plot_2_density_heatmap(res, config):
-    """--- PLOT 2: Original Band Diagram + Total Density Heatmap ---"""
+    """Carrier Distribution Heatmap (config key: carrier_distribution_heatmap)"""
     z, Vtot_c, Vtot_v, Ef = res["z"], res["Vtot_c"], res["Vtot_v"], res["Ef"]
     N_3D, P_3D = res["N_3D"], res["P_3D"]
     flat_layers = res["flat_layers"]
@@ -232,7 +232,7 @@ def plot_2_density_heatmap(res, config):
                     c=norm_P3D[mask_h], cmap='Reds', s=25, alpha=0.9, edgecolor='none', zorder=5, label='Hole Heatmap')
 
     ax2.set(xlim=(0, z[-1]*1e9), ylim=band_ylim(res, config),
-            xlabel='z (nm)', ylabel='Energy (eV)', title='[Original] Carrier Spatial Distribution Heatmap')
+            xlabel='z (nm)', ylabel='Energy (eV)', title='Carrier Distribution Heatmap')
     ax2.grid(alpha=0.3)
     handles, labels = ax2.get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
@@ -242,24 +242,24 @@ def plot_2_density_heatmap(res, config):
 
 
 def plot_3_charge_distribution(res, config):
-    """--- PLOT 3: Original Charge Distribution ---"""
+    """Charge Distribution with Layer Shading (config key: charge_distribution_shaded)"""
     z, N_3D, P_3D, rho_net = res["z"], res["N_3D"], res["P_3D"], res["rho_net"]
     flat_layers = res["flat_layers"]
 
     fig3, ax3 = plt.subplots(figsize=(12, 5))
     add_layer_background(ax3, flat_layers, show_colors=True, config=config)
 
-    _charge_distribution(ax3, res, config, '[Original] Charge Distribution Profile')
+    _charge_distribution(ax3, res, config, 'Charge Distribution with Layer Shading')
     fig3.tight_layout()
     return fig3
 
 
 # =============================================================
-# SET 2: CLEAN PLOTS (NO COLORS, 1D DENSITY INSTEAD OF HEATMAP)
+# PLOTS WITH PLAIN BACKGROUND
 # =============================================================
 
 def plot_4_conduction_band_wavefunctions(res, config):
-    """--- PLOT 4: Clean Conduction Band + Electron Wavefunctions ---"""
+    """Conduction Band and Electron Wavefunctions (config key: conduction_band_wavefunctions)"""
     z, Vtot_c, V0_c = res["z"], res["Vtot_c"], res["V0_c"]
     Ec, psic = res["Ec"], res["psic"]
     flat_layers = res["flat_layers"]
@@ -323,7 +323,7 @@ def plot_4_conduction_band_wavefunctions(res, config):
 
 
 def plot_5_band_diagram_carrier_density(res, config):
-    """--- PLOT 5: Clean Band Diagram + 1D Carrier Density (Replaces Heatmap) ---"""
+    """Band Diagram and Carrier Density (config key: band_diagram_carrier_density)"""
     z, Vtot_c, Vtot_v, Ef = res["z"], res["Vtot_c"], res["Vtot_v"], res["Ef"]
     N_3D, P_3D = res["N_3D"], res["P_3D"]
     flat_layers = res["flat_layers"]
@@ -336,7 +336,7 @@ def plot_5_band_diagram_carrier_density(res, config):
     ax5.axhline(Ef, color='lime', ls='--', lw=2, label=r'$E_f$', zorder=10)
 
     ax5.set(xlim=(0, z[-1]*1e9), ylim=band_ylim(res, config),
-            xlabel='z (nm)', ylabel='Energy (eV)', title='[Clean] Band Diagram & 1D Carrier Density')
+            xlabel='z (nm)', ylabel='Energy (eV)', title='Band Diagram and Carrier Density')
     ax5.grid(alpha=0.3)
 
     # Secondary Y-axis for 1D Density Plot
@@ -361,20 +361,20 @@ def plot_5_band_diagram_carrier_density(res, config):
 
 
 def plot_6_charge_distribution_clean(res, config):
-    """--- PLOT 6: Clean Charge Distribution ---"""
+    """Charge Distribution (config key: charge_distribution)"""
     z, N_3D, P_3D, rho_net = res["z"], res["N_3D"], res["P_3D"], res["rho_net"]
     flat_layers = res["flat_layers"]
 
     fig6, ax6 = plt.subplots(figsize=(12, 5))
     add_layer_background(ax6, flat_layers, show_colors=False, config=config)
 
-    _charge_distribution(ax6, res, config, '[Clean] Charge Distribution Profile')
+    _charge_distribution(ax6, res, config, 'Charge Distribution')
     fig6.tight_layout()
     return fig6
 
 
 def plot_7_field_and_dielectric(res, config):
-    """--- PLOT 7: Electric Field and Dynamic Dielectric Constant ---"""
+    """Electric Field and Dielectric Constant (config key: electric_field_dielectric_constant)"""
     z = res["z"]
     flat_layers = res["flat_layers"]
     Epsi_final = res["Epsi_arr"]
@@ -386,7 +386,7 @@ def plot_7_field_and_dielectric(res, config):
 
     # Plot Electric Field on the primary y-axis
     ax7.plot(z*1e9, E_final_MV_cm, color='purple', lw=2, label='Electric Field (MV/cm)', zorder=10)
-    ax7.set(xlabel='z (nm)', ylabel='Electric Field (MV/cm)', title='Electric Field & Dielectric Profile vs Space')
+    ax7.set(xlabel='z (nm)', ylabel='Electric Field (MV/cm)', title='Electric Field and Dielectric Constant')
     ax7.grid(alpha=0.3)
 
     # Plot Dielectric Constant on a secondary y-axis
@@ -404,27 +404,61 @@ def plot_7_field_and_dielectric(res, config):
     return fig7
 
 
-# Plot keys used in config["plots"] (True = draw, False = skip)
+# Plot keys used in config["plots"] (True = draw, False = skip); each key matches the figure title
 PLOTS = {
-    "band_diagram_wavefunctions":   plot_1_band_diagram_wavefunctions,     # 1 bands + every wavefunction (dotted)
-    "carrier_heatmap":              plot_2_density_heatmap,                # 2 bands + carrier spatial distribution heatmap
-    "charge_distribution":          plot_3_charge_distribution,            # 3 charge distribution, coloured background
-    "cb_wavefunctions":             plot_4_conduction_band_wavefunctions,  # 4 conduction band + electron wavefunctions
-    "band_carrier_density":         plot_5_band_diagram_carrier_density,   # 5 bands + 1D carrier density (log)
-    "charge_distribution_clean":    plot_6_charge_distribution_clean,      # 6 charge distribution, plain background
-    "field_dielectric":             plot_7_field_and_dielectric,           # 7 electric field + dielectric constant
+    "band_diagram_wavefunctions":         plot_1_band_diagram_wavefunctions,     # Band Diagram and Wavefunctions
+    "carrier_distribution_heatmap":       plot_2_density_heatmap,                # Carrier Distribution Heatmap
+    "charge_distribution_shaded":         plot_3_charge_distribution,            # Charge Distribution with Layer Shading
+    "conduction_band_wavefunctions":      plot_4_conduction_band_wavefunctions,  # Conduction Band and Electron Wavefunctions
+    "band_diagram_carrier_density":       plot_5_band_diagram_carrier_density,   # Band Diagram and Carrier Density
+    "charge_distribution":                plot_6_charge_distribution_clean,      # Charge Distribution
+    "electric_field_dielectric_constant": plot_7_field_and_dielectric,           # Electric Field and Dielectric Constant
 }
 DEFAULT_PLOTS = {k: True for k in PLOTS}
 DEFAULT_PLOTS["band_diagram_wavefunctions"] = False
 
+# Earlier key names, still accepted
+PLOT_KEY_ALIASES = {
+    "carrier_heatmap": "carrier_distribution_heatmap",
+    "cb_wavefunctions": "conduction_band_wavefunctions",
+    "band_carrier_density": "band_diagram_carrier_density",
+    "charge_distribution_clean": "charge_distribution",
+    "field_dielectric": "electric_field_dielectric_constant",
+}
+
+
+def add_minor_ticks(fig):
+    """Minor ticks on every axis (incl. twin axes): linear axes get evenly spaced minor ticks,
+    log axes get the 2..9 sub-decade ticks, so linear and log axes are easy to tell apart."""
+    from matplotlib.ticker import LogLocator, NullFormatter
+    for ax in fig.axes:
+        ax.minorticks_on()
+        for axis, scale in ((ax.yaxis, ax.get_yscale()), (ax.xaxis, ax.get_xscale())):
+            if scale == "log":       # keep 2..9 minor ticks even when the axis spans many decades
+                axis.set_major_locator(LogLocator(base=10.0, numticks=30))
+                axis.set_minor_locator(LogLocator(base=10.0, subs=np.arange(2, 10) * 1.0, numticks=300))
+                axis.set_minor_formatter(NullFormatter())
+        ax.tick_params(which="major", length=6, width=1.0)
+        ax.tick_params(which="minor", length=3, width=0.8)
+
 
 def plot_all_results(res, config, show=True):
     """Draw the plots switched on in config["plots"] (missing keys use DEFAULT_PLOTS) and show them."""
-    selection = {**DEFAULT_PLOTS, **(config.get("plots") or {})}
+    user = config.get("plots") or {}
+    if "charge_distribution_clean" in user and "charge_distribution_shaded" not in user:
+        # old-style config: there "charge_distribution" meant the shaded version
+        user = dict(user)
+        if "charge_distribution" in user:
+            user["charge_distribution_shaded"] = user.pop("charge_distribution")
+    selection = dict(DEFAULT_PLOTS)
+    for k, v in user.items():
+        selection[PLOT_KEY_ALIASES.get(k, k)] = v
     unknown = set(selection) - set(PLOTS)
     if unknown:
         print(f"[plots] unknown plot key(s) in config['plots']: {sorted(unknown)}; valid: {list(PLOTS)}")
     figs = [func(res, config) for key, func in PLOTS.items() if selection.get(key, False)]
+    for fig in figs:
+        add_minor_ticks(fig)
     if show:
         plt.show()
     return figs
@@ -441,6 +475,7 @@ def plot_thickness_sweep(uc_array, e_per_uc_array, fixed_stack, sweep_mat, show=
     ax.set_xlabel(f'{sweep_mat} Thickness (Unit Cells)', fontsize=12)
     ax.set_ylabel(r'Electron Density ($e^- / u.c.$)', fontsize=12)
     ax.set_title(f'Critical Thickness Sweep: {fixed_stack} / {sweep_mat}', fontsize=12)
+    add_minor_ticks(fig)
     ax.grid(True, alpha=0.4)
     ax.legend()
 
