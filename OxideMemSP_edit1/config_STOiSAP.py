@@ -221,7 +221,7 @@ config = {
     {
         "type": "donor",
         "profile": "step",            # "delta" | "step" | "gaussian"
-        "value": +0.01,                  # e/uc = 0.2 V_O²⁺ per uc; scan 0.25–0.55
+        "value": +0.1,                  # e/uc = 0.2 V_O²⁺ per uc; scan 0.25–0.55
         "interface": ["Sapphire", "STO"],
         "direction": "right",
         "layer_offset": [1, 1]         # TiO2#1, the first Ti plane
@@ -255,8 +255,8 @@ config = {
         "profile": "step",            # "delta" | "step" | "gaussian"
         "layer_offset": [4, 4],        # centred on the Ti plane of UC1
         "value": 0.8,                  # e/uc, see below
-        "delta_plus_0": 0.09e-9,
-        "delta_minus_0": 0.09e-9,     # total separation 0.19 nm
+        "delta_plus_0": 0.1e-9,
+        "delta_minus_0": 0.1e-9,     # total separation 0.19 nm
         "decay_mode": "none",
         "decay_rate": 2
     }
