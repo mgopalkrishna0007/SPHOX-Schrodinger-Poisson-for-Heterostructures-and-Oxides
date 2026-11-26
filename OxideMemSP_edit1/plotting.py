@@ -120,7 +120,7 @@ def _charge_distribution(ax, res, config, title):
 
     left  (linear, signed): fixed charges -- polar planes, doping and dipoles (+ red / - blue) -- and
                             the net charge density rho_net, so signs and dopings stay visible
-    right (log, magnitude): electron density N_3D, hole density P_3D and |rho_net|
+    right (log): electron density N_3D and hole density P_3D
     plot_settings["charge_linear_ylim"] = (ymin, ymax) fixes the left axis (e.g. to see a doping step
     next to much taller delta-dipole spikes); plot_settings["charge_xlim"] = (zmin, zmax) in nm zooms in.
     """
@@ -147,13 +147,12 @@ def _charge_distribution(ax, res, config, title):
 
     # --- right: log, magnitudes ---
     axr = ax.twinx()
-    floor, top = density_window(config, N_3D, P_3D, rho_net)
+    floor, top = density_window(config, N_3D, P_3D)
     _log_curve(axr, x, N_3D, floor, lw=2, color='blue', label=r'$N_{3D}$ (electrons)')
     _log_curve(axr, x, P_3D, floor, lw=2, color='red', label=r'$P_{3D}$ (holes)')
-    _log_curve(axr, x, np.abs(rho_net), floor, lw=1.5, color='dimgray', ls=':', label=r'$|\rho_{net}|$')
     axr.set_yscale('log')
     axr.set_ylim(floor, top)
-    axr.set_ylabel(r'Carrier / $|\rho_{net}|$ density (m$^{-3}$, log)')
+    axr.set_ylabel(r'Carrier density (m$^{-3}$, log)')
 
     h1, l1 = ax.get_legend_handles_labels()
     h2, l2 = axr.get_legend_handles_labels()

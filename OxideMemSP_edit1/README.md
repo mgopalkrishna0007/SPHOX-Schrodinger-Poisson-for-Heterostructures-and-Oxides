@@ -81,7 +81,7 @@ Set each plot to `True` (draw it) or `False` (skip it):
 
 **The charge distribution plots (3 and 6) have two y-axes:**
 - **Left axis (linear, signed):** fixed charges (polar planes, doping, dipoles; + red / − blue) and ρ_net.
-- **Right axis (log):** N_3D, P_3D and |ρ_net|.
+- **Right axis (log):** N_3D and P_3D.
 - `charge_xlim = (zmin, zmax)` zooms in, in nm. `charge_linear_ylim = (ymin, ymax)` fixes the left axis in m⁻³, for example to see a small doping next to tall dipole spikes.
 
 ## Plot settings (in every config, `"plot_settings"`)
