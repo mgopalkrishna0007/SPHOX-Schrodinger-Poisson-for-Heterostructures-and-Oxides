@@ -7,8 +7,9 @@ the dossier's; the solver / mixing / plotting blocks and the STO field dependenc
 (sto_field_dependent_epsilon) are the same as in the other SPHOx configs.
 
 Interface profile:
-- SrTiO3 substrate (left): Dirichlet boundary condition (V = 0.0 V)
-- W top electrode (right): Neumann boundary condition (no field inside the metal)
+- Thin vacuum layer (1 nm) on both ends of the stack
+- Left end (outside the SrTiO3 substrate): Dirichlet boundary condition (V = 0.0 V)
+- Right end (outside the W top electrode): Neumann boundary condition
 
 Every number carries a confidence tier; the evidence is in SPHOx_parameter_dossier.pdf.
   [A] measured on this material, primary source checked
@@ -51,6 +52,9 @@ area_YHO = 1.132e-19                 # [A+] area per HfO2 in a (111) plane = (a*
 # W: alpha-bcc a = 3.165 A [B]; (110) planes, one atom per in-plane cell
 t_W = 2.238e-10                      # [B+] d110 = a / sqrt(2)
 area_W = 7.083e-20                   # [B+] a^2 * sqrt(2) / 2
+
+# Vacuum layers at both ends of the stack (thin; only a hard wall / field gap)
+t_vac = 1.0e-9
 
 # =============================================================================
 # Derived charges (see dossier, section 6)
@@ -101,7 +105,7 @@ def sto_field_dependent_epsilon(E_V_per_m):
 config = {
     # --- Solver settings (as in the dossier) ---
     "Nloops": 2000,
-    "tol": 1e-8,
+    "tol": 1e-10,
     "n": 100,
     "T": 300,
     "fully_ionized_flag": True,
@@ -116,7 +120,7 @@ config = {
     "mixing_method": "anderson",
 
     # Anderson mixing (used when mixing_method == "anderson")
-    "mix_m": 3,             # number of previous iterates kept in the Anderson history
+    "mix_m": 6,             # number of previous iterates kept in the Anderson history
     "mix_beta": 0.1,        # linear mixing fraction inside the Anderson step
     "mix_max_step": 0.1,    # cap on the largest potential change per loop (V)
     "mix_beta_eps": 0.1,    # fixed damping of the field-dependent dielectric constant
@@ -166,6 +170,7 @@ config = {
             "YHO": "#9b5de5",
             "YHO_top": "#6a4c93",
             "W": "#8d99ae",
+            "Vac": "#d9d9d9",
         },
         "background_alpha": 0.35,      # opacity of the layer shading (0 = invisible, 1 = solid)
         "linewidth": 2.0,              # one linewidth for every line in every plot
@@ -202,7 +207,7 @@ config = {
                     #   316.3 +- 2.2, isotropic [A]: Goryachev et al., arXiv:1508.07550
                     # Field dependence: sto_field_dependent_epsilon (van der Berg form, as in the other configs);
                     # eps_r is only used where eps is held constant (e.g. inside dipole layers)
-                    "eps_r": 330.0, "is_eps_dynamic": False,
+                    "eps_r": 330.0, "is_eps_dynamic": True,
                     "eps_dynamic_func": sto_field_dependent_epsilon,
                     "t_layer": t_STO_half,
                     "layer_charge": 0.0           # [A] formal ionic charge of SrO
@@ -211,7 +216,7 @@ config = {
                     "name": "TiO2",
                     "Ec": -3.90, "Ev": -7.15,
                     "meff_e": 1.3, "meff_h": 1.2,
-                    "eps_r": 330.0, "is_eps_dynamic": False,
+                    "eps_r": 330.0, "is_eps_dynamic": True,
                     "eps_dynamic_func": sto_field_dependent_epsilon,
                     "t_layer": t_STO_half,
                     "layer_charge": 0.0           # [A] formal ionic charge of TiO2
@@ -291,6 +296,21 @@ config = {
                 }
             ]
         },
+        # Thin vacuum layer on both ends: hard wall for the wavefunctions (no state peaks at the
+        # outer surfaces) and a field-carrying gap with eps = 1. Ec/Ev = +-100 eV keep carriers out.
+        "Vac": {
+            "uc_area": area_STO,
+            "layers": [
+                {
+                    "name": "Vacuum",
+                    "Ec": 100.0, "Ev": -100.0,
+                    "meff_e": 1.0, "meff_h": 1.0,
+                    "eps_r": 1.0, "is_eps_dynamic": False,
+                    "t_layer": t_vac,
+                    "layer_charge": 0.0
+                }
+            ]
+        },
         "W": {
             "uc_area": area_W,
             "layers": [
@@ -312,7 +332,8 @@ config = {
     # --- Stack definition (substrate first) ---
     # YHO total 34 layers = 10.0 nm, matching the 9-11 nm films of Yun 2022 [A]; other counts are your choice.
     # Option without W layers: drop "W*8" and set bc_right_type to 'dirichlet' (see dossier, section 7).
-    "stack_definition": ["STO*10", "LSMO*20", "YHO_bot*1", "YHO*32", "YHO_top*1", "W*8"],
+    # Vac*1 on both ends: thin vacuum layers (t_vac) outside the substrate and the top electrode.
+    "stack_definition": ["Vac*1", "STO*30", "LSMO*20", "YHO_bot*1", "YHO*32", "YHO_top*1", "W*8", "Vac*1"],
 
     "doping_profiles": [],
     "dipole_configs": []
