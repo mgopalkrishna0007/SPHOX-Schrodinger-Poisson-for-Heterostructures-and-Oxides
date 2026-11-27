@@ -268,7 +268,7 @@ config = {
         "direction": "right",
         "profile": "step",            # "delta" | "step" | "gaussian"
         "layer_offset": [4, 4],        # centred on the Ti plane of UC1
-        "value": 0.0,                  # e/uc, see below
+        "value": 0.8,                  # e/uc, see below
         "delta_plus_0": 0.1e-9,
         "delta_minus_0": 0.1e-9,     # total separation 0.19 nm
         "decay_mode": "none",
@@ -277,3 +277,4 @@ config = {
 
     ]
 }
+
