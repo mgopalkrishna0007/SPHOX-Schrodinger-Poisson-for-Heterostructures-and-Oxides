@@ -101,7 +101,7 @@ def sto_field_dependent_epsilon(E_V_per_m):
 config = {
     # --- Solver settings (as in the dossier) ---
     "Nloops": 2000,
-    "tol": 1e-10,
+    "tol": 1e-8,
     "n": 100,
     "T": 300,
     "fully_ionized_flag": True,
@@ -116,7 +116,7 @@ config = {
     "mixing_method": "anderson",
 
     # Anderson mixing (used when mixing_method == "anderson")
-    "mix_m": 6,             # number of previous iterates kept in the Anderson history
+    "mix_m": 3,             # number of previous iterates kept in the Anderson history
     "mix_beta": 0.1,        # linear mixing fraction inside the Anderson step
     "mix_max_step": 0.1,    # cap on the largest potential change per loop (V)
     "mix_beta_eps": 0.1,    # fixed damping of the field-dependent dielectric constant
@@ -202,7 +202,7 @@ config = {
                     #   316.3 +- 2.2, isotropic [A]: Goryachev et al., arXiv:1508.07550
                     # Field dependence: sto_field_dependent_epsilon (van der Berg form, as in the other configs);
                     # eps_r is only used where eps is held constant (e.g. inside dipole layers)
-                    "eps_r": 330.0, "is_eps_dynamic": True,
+                    "eps_r": 330.0, "is_eps_dynamic": False,
                     "eps_dynamic_func": sto_field_dependent_epsilon,
                     "t_layer": t_STO_half,
                     "layer_charge": 0.0           # [A] formal ionic charge of SrO
@@ -211,7 +211,7 @@ config = {
                     "name": "TiO2",
                     "Ec": -3.90, "Ev": -7.15,
                     "meff_e": 1.3, "meff_h": 1.2,
-                    "eps_r": 330.0, "is_eps_dynamic": True,
+                    "eps_r": 330.0, "is_eps_dynamic": False,
                     "eps_dynamic_func": sto_field_dependent_epsilon,
                     "t_layer": t_STO_half,
                     "layer_charge": 0.0           # [A] formal ionic charge of TiO2
@@ -312,7 +312,7 @@ config = {
     # --- Stack definition (substrate first) ---
     # YHO total 34 layers = 10.0 nm, matching the 9-11 nm films of Yun 2022 [A]; other counts are your choice.
     # Option without W layers: drop "W*8" and set bc_right_type to 'dirichlet' (see dossier, section 7).
-    "stack_definition": ["STO*30", "LSMO*20", "YHO_bot*1", "YHO*32", "YHO_top*1", "W*8"],
+    "stack_definition": ["STO*10", "LSMO*20", "YHO_bot*1", "YHO*32", "YHO_top*1", "W*8"],
 
     "doping_profiles": [],
     "dipole_configs": []

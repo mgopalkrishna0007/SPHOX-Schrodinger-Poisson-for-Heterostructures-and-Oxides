@@ -94,7 +94,7 @@ def Schroed1D_dolfin(V_space, Vtot_array, Mass_array, n_eig):
     solver.parameters['problem_type'] = 'gen_hermitian'
     solver.parameters['spectral_transform'] = 'shift-and-invert'
     solver.parameters['spectral_shift'] = np.min(Vtot_array) - 0.01
-
+    solver.parameters['spectrum'] = 'target magnitude'  
     solver.solve(n_eig)
 
     nconv = solver.get_number_converged()
