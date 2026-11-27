@@ -3,7 +3,8 @@
 SPHOx configuration: W / Y:HfO2(111) / La0.67Sr0.33MnO3(001) / SrTiO3(001), T = 300 K.
 
 Built from SPHOx_parameter_dossier.pdf (Appendix A, compiled 27 Nov 2026). The physics values are
-the dossier's; only the solver / mixing / plotting blocks were added to match the current code.
+the dossier's; the solver / mixing / plotting blocks and the STO field dependence
+(sto_field_dependent_epsilon) are the same as in the other SPHOx configs.
 
 Interface profile:
 - SrTiO3 substrate (left): Dirichlet boundary condition (V = 0.0 V)
@@ -25,7 +26,6 @@ Suggested sweeps (dossier, section 7):
   POL                 -1, 0, +1 (and +-0.5)   up/down asymmetry; intrinsic vs ionic polarization
   LSMO work function  4.2, 4.5, 4.8 eV        surface-treatment dependence
   W work function     4.55, 5.25 eV           polycrystalline vs (110) texture
-  STO eps_B           0 first, then fitted    only an effective value exists at 300 K
 """
 import numpy as np
 
@@ -71,17 +71,28 @@ jel_LSMO = 0.166
 jel_W = 2.0
 
 # =============================================================================
-# Dielectric functions
+# Dielectric Physics Functions (same STO field dependence as the other SPHOx configs)
 # =============================================================================
-# STO: eps_r(E) = 1/(A + B|E|) (form used by Copie et al. 2009)
-#   A = 1/330 = 3.030e-3 [A+]; B at 300 K not found -> 0 (linear, field independent) [E]
-eps_A_STO = 3.030e-3
-eps_B_STO = 0.0                      # in m/V (E in V/m); 0 -> eps_r = 330 at every field
-
-
-def sto_eps_yamamoto(E_V_per_m):
-    """eps_r(E) = 1 / (A + B |E|), E in V/m. With B = 0 this is the constant 330."""
-    return 1.0 / (eps_A_STO + eps_B_STO * np.abs(E_V_per_m))
+def sto_field_dependent_epsilon(E_V_per_m):
+    """
+    Calculates the field-dependent dielectric constant of STO.
+    Equation derived from van der Berg et al.
+    E_V_per_m: Local Electric field in V/m.
+    """
+    # Convert E from V/m to MV/cm
+    E_MV_cm = np.abs(E_V_per_m) * 1e-8
+    
+    # Fitting parameters from the paper
+    a = 358.50
+    b = 1.84
+    c = 83.84
+    f = 0.15
+    C = 736.30
+    
+    if E_MV_cm <= 0.27:
+        return 300.0
+    else:
+        return -(1.0 / E_MV_cm) * ((a / b) * np.exp(-b * E_MV_cm) + (c / f) * np.exp(-f * E_MV_cm) - C)
 
 
 # =============================================================================
@@ -189,10 +200,10 @@ config = {
                     "meff_e": 1.3, "meff_h": 1.2,
                     # eps_r 330 along [001] at 300 K [A]: Neville, Hoeneisen & Mead, JAP 43, 2124 (1972);
                     #   316.3 +- 2.2, isotropic [A]: Goryachev et al., arXiv:1508.07550
-                    # eps_r(E) = 1/(A + B|E|): A = 1/330 [A]; B at 300 K not found -> 0 (linear) [E]
+                    # Field dependence: sto_field_dependent_epsilon (van der Berg form, as in the other configs);
+                    # eps_r is only used where eps is held constant (e.g. inside dipole layers)
                     "eps_r": 330.0, "is_eps_dynamic": True,
-                    "eps_dynamic_func": sto_eps_yamamoto,
-                    "eps_A": eps_A_STO, "eps_B": eps_B_STO,     # dossier fields (used by sto_eps_yamamoto)
+                    "eps_dynamic_func": sto_field_dependent_epsilon,
                     "t_layer": t_STO_half,
                     "layer_charge": 0.0           # [A] formal ionic charge of SrO
                 },
@@ -201,8 +212,7 @@ config = {
                     "Ec": -3.90, "Ev": -7.15,
                     "meff_e": 1.3, "meff_h": 1.2,
                     "eps_r": 330.0, "is_eps_dynamic": True,
-                    "eps_dynamic_func": sto_eps_yamamoto,
-                    "eps_A": eps_A_STO, "eps_B": eps_B_STO,
+                    "eps_dynamic_func": sto_field_dependent_epsilon,
                     "t_layer": t_STO_half,
                     "layer_charge": 0.0           # [A] formal ionic charge of TiO2
                 }
