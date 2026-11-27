@@ -238,7 +238,10 @@ config = {
                     "eps_r": 30.0, "is_eps_dynamic": False,
                     "t_layer": t_LSMO_half,
                     # formal (La0.67Sr0.33)O = +0.67 [A] plus electron-gas background [D]
-                    "layer_charge": +0.67 + jel_LSMO
+                    "layer_charge": +0.67 + jel_LSMO,
+                    # spread uniformly over the half-cell: the jellium background is uniform by definition, and
+                    # delta sheets with eps = 30 put ~0.2 eV ripples on the LSMO bands
+                    "charge_profile": "step"
                 },
                 {
                     "name": "MnO2",
@@ -247,7 +250,8 @@ config = {
                     "eps_r": 30.0, "is_eps_dynamic": False,
                     "t_layer": t_LSMO_half,
                     # formal MnO2 = -0.67 [A] plus electron-gas background [D]
-                    "layer_charge": -0.67 + jel_LSMO
+                    "layer_charge": -0.67 + jel_LSMO,
+                    "charge_profile": "step"      # uniform over the half-cell (see LaSrO)
                 }
             ]
         },
@@ -323,7 +327,10 @@ config = {
                     "meff_e": 1.0, "meff_h": 1.0,   # [E] free-electron placeholder
                     "eps_r": 1.0, "is_eps_dynamic": False,   # [E] background only
                     "t_layer": t_W,
-                    "layer_charge": +jel_W          # [E] positive background for 2 e/atom
+                    "layer_charge": +jel_W,         # [E] positive background for 2 e/atom
+                    # uniform over the layer: a +2 e delta sheet every 0.22 nm with eps = 1 made the W bands
+                    # zig-zag by +-6 eV around their flat value
+                    "charge_profile": "step"
                 }
             ]
         }
