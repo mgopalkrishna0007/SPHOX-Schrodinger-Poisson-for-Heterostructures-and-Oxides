@@ -238,18 +238,6 @@ def verify_device(config, device, N_D_polar, N_A_polar, dipole_info):
 # =============================================================================
 # 2. Polarization / screening balance (printed every loop)
 # =============================================================================
-def electrode_fluxes(z, U, eps_used, rho_e):
-    """Displacement field D (C/m^2) at the two ends of the solved region, from the FE solution
-    (consistent flux, exact for the piecewise-linear discretisation). rho_e = charge density (C/m^3).
-    At a Neumann end it is ~0; at a Dirichlet end it equals the screening charge on that electrode:
-    sigma_left = D(z0), sigma_right = -D(zL)."""
-    h0, hN = z[1] - z[0], z[-1] - z[-2]
-    e0 = 0.5 * (eps_used[0] + eps_used[1]); eN = 0.5 * (eps_used[-1] + eps_used[-2])
-    D0 = EPS0 * e0 * (U[1] - U[0]) / h0 - h0 / 6.0 * (2 * rho_e[0] + rho_e[1])
-    DL = EPS0 * eN * (U[-1] - U[-2]) / hN + hN / 6.0 * (2 * rho_e[-1] + rho_e[-2])
-    return D0, DL
-
-
 def _group_dipoles(dipole_info):
     groups = {}
     for d in dipole_info:
@@ -274,12 +262,33 @@ def polarization_report(config, device, dipole_info, U, eps_used, ND_plus_z, NA_
     eps_el = 0.5 * (eps_used[1:] + eps_used[:-1])
     p_latt = EPS0 * np.sum((eps_el - 1.0) * dU)
     p_vac = EPS0 * (U[-1] - U[0])
-    # screening charge on Dirichlet electrodes (zero at Neumann ends)
-    D0, DL = electrode_fluxes(z, U, eps_used, E_CHARGE * (rho_ins + rho_fix + rho_mob))
-    p_el = -DL * (z[-1] - z_ref) + D0 * (z[0] - z_ref)
+    # Screening charge on the electrodes = charge on the fixed-potential nodes (Dirichlet ends and interior
+    # electrode layers), from the FE residual of those nodes (exact for the discretisation).
+    rho_e = E_CHARGE * (rho_ins + rho_fix + rho_mob)
+    h = np.diff(z)
+    D_el = EPS0 * eps_el * dU / h                              # D on every element
+    R = np.zeros(len(z))                                       # residual: int D phi_k' + int rho phi_k
+    R[:-1] += -D_el + h / 6.0 * (2 * rho_e[:-1] + rho_e[1:])
+    R[1:] += D_el + h / 6.0 * (rho_e[:-1] + 2 * rho_e[1:])
+    q_node = -R                                                # charge (C/m^2) held by fixed nodes
+    fixed = np.zeros(len(z), bool)
+    dirichlet = [str(config.get(k, "neumann")).lower() == "dirichlet" for k in ("bc_left_type", "bc_right_type")]
+    fixed[0], fixed[-1] = dirichlet
+    electrodes = []                                            # (label, charge C/m^2)
+    if dirichlet[0]:
+        electrodes.append(("left end", q_node[0]))
+    from scf_solver import electrode_regions
+    for a, b, Ufix in electrode_regions(device):
+        m = (z >= a - 1e-18) & (z <= b + 1e-18)
+        fixed |= m
+        name = device["flat_layers"][device["layer_idx_map"][np.argmax(m)]]["mat_name"]
+        electrodes.append((f"{name} electrode", np.sum(q_node[m])))
+    if dirichlet[1]:
+        electrodes.append(("right end", q_node[-1]))
+    p_el = np.sum(q_node[fixed] * (z[fixed] - z_ref))
+    free_err = np.max(np.abs(R[~fixed])) if np.any(~fixed) else 0.0   # ~0: Poisson satisfied on free nodes
     residual = p_ins + p_fix + p_mob + p_latt + p_el + p_vac
     scale = max(abs(p_ins), abs(p_fix), abs(p_mob), abs(p_latt), abs(p_el), 1e-30)
-    dirichlet = [str(config.get(k, "neumann")).lower() == "dirichlet" for k in ("bc_left_type", "bc_right_type")]
 
     f = lambda p: e_nm_per_uc(p, A_ref)
     lines = []
@@ -321,16 +330,16 @@ def polarization_report(config, device, dipole_info, U, eps_used, ND_plus_z, NA_
                  f"- = pointing towards z=0):")
     lines.append(f"   inserted dipoles {f(p_ins):+.5f} | free charges {f(p_free):+.5f} "
                  f"[ions/doping {f(p_fix):+.5f}, electrons/holes {f(p_mob):+.5f}] | lattice (eps-1) {f(p_latt):+.5f}"
-                 + (f" | electrode charges {f(p_el):+.5f}" if any(dirichlet) else ""))
-    if any(dirichlet):
-        lines.append(f"   screening charge on the electrodes: left {D0/E_CHARGE*A_ref:+.4f} e/uc, "
-                     f"right {-DL/E_CHARGE*A_ref:+.4f} e/uc (of {mat_ref})")
+                 + (f" | electrode charges {f(p_el):+.5f}" if electrodes else ""))
+    if electrodes:
+        lines.append("   screening charge on the electrodes: " + ", ".join(
+            f"{lab} {q/E_CHARGE*A_ref:+.4f} e/uc" for lab, q in electrodes) + f" (of {mat_ref})")
     lines.append(f"   screening = net - inserted = {f(p_scr):+.5f} | net = {f(p_ins + p_scr):+.5f} = -eps0*dU -> "
                  f"potential step across stack dU = {U[-1]-U[0]:+.4f} eV | sum check {residual/scale:.1e}")
-    if explicit != 0.0 and not any(dirichlet):
+    if explicit != 0.0 and not electrodes:
         lines.append(f"   -> lattice screens {-p_latt/explicit*100:.2f}% of all explicit dipoles (inserted + free charges); "
                      f"{-p_vac/explicit*100:.2f}% is left unscreened (= the band step across the stack)")
     nums = {"p_ins": p_ins, "p_fix": p_fix, "p_mob": p_mob, "p_latt": p_latt, "p_el": p_el, "p_vac": p_vac,
-            "sigma_left": D0, "sigma_right": -DL,
+            "electrodes": electrodes, "free_node_residual": free_err,
             "residual": residual, "rel_residual": residual / scale, "A_ref": A_ref}
     return lines, nums

@@ -4,10 +4,16 @@ SPHOx configuration: W / Y:HfO2(111) / La0.67Sr0.33MnO3(001) [/ SrTiO3(001) subs
 
 ELECTRODE MODEL (this version)
   LSMO and W are metallic electrodes, so their bands are not solved. Each electrode is a fixed
-  potential (Dirichlet boundary condition) placed behind a thin, charge-free "screening gap":
+  potential placed behind a thin, charge-free "screening gap":
 
-      LSMO electrode | LSMO_scr (lambda_LSMO, eps_LSMO) | Y:HfO2 (solved) | W_scr (lambda_W, eps_W) | W electrode
-            ^ Dirichlet U_left                                                         Dirichlet U_right ^
+      STO substrate | LSMO electrode | LSMO_scr | Y:HfO2 | W_scr | W electrode
+        (solved)      fixed U = 0     (lambda,    (solved) (lambda,  Dirichlet U_W
+                     ("is_electrode")  eps)                 eps)     (right end)
+
+  The LSMO electrode sits inside the stack (the STO substrate is kept below it), so it is a
+  fixed-potential region ("is_electrode": True), held at U = 0 by
+  master_helper.Poisson_dolfin(fixed_regions=...). The W electrode is the right-hand Dirichlet
+  boundary; the free STO surface (left end) is Neumann.
 
   For a Thomas-Fermi metal with screening length lambda and background permittivity eps_e, the screening
   charge sits ~lambda inside the metal; outside the metal this is electrostatically identical to an
@@ -15,11 +21,11 @@ ELECTRODE MODEL (this version)
   (Zhuravlev et al., PRL 94, 246802 (2005)). With ideal electrodes (lambda = 0) a uniform polarization
   is screened completely and the bands of Y:HfO2 would be flat for every POL; the finite lambda is
   what makes the barriers depend on the polarization direction.
-  The STO substrate lies behind the metallic LSMO and does not affect the Y:HfO2 electrostatics,
-  so it is not part of the solved stack.
+  The STO substrate is kept in the stack and solved; behind the grounded LSMO it is field free and,
+  with Ef 0.6 eV below its conduction band, essentially empty.
 
   Fermi level: fixed by the electrodes (zero bias): Ef = -Phi_LSMO. Electrode potentials (electron
-  potential energy, eV) follow from the work functions:  U_left = 0,  U_right = Phi_W - Phi_LSMO - V_bias.
+  potential energy, eV) follow from the work functions:  U_LSMO = 0,  U_W = Phi_W - Phi_LSMO - V_bias.
   The resulting barriers are then Phi_B = Phi_M - chi_YHO (Schottky-Mott) plus whatever the
   polarization and its screening add.
 
@@ -45,14 +51,46 @@ import numpy as np
 # =============================================================================
 # Lattice / geometry
 # =============================================================================
-# SrTiO3 substrate (sets the in-plane lattice of the coherent LSMO): a = 3.905 A [A] (Vailionis 2011)
+# SrTiO3 substrate: a = 3.905 A [A] (Vailionis et al., PRB 83, 064101 (2011), Table I)
 a_STO = 3.905e-10
-area_STO = a_STO**2
+t_STO_half = a_STO / 2.0             # [A+] AO / BO2 plane spacing, 1.953 A
+area_STO = a_STO**2                  # [A+] 1.525e-19 m^2
+
+# La0.67Sr0.33MnO3 coherent on STO: in-plane a = a_STO, out-of-plane c_pc = 3.849 A [D] (Poisson ratio 0.4)
+area_LSMO = a_STO**2
+t_LSMO_half = 3.849e-10 / 2.0
+N_STO = 30                           # substrate unit cells kept in the stack
+N_LSMO = 20                          # LSMO electrode unit cells (only its thickness matters, for the plots)
 
 # Y:HfO2, 5 mol% YO1.5, (111) on LSMO(001): a = 5.20, b = c = 5.07 A [A] (Yun 2022)
 t_YHO = 2.952e-10                    # [A+] d111 from 1/d^2 = 1/a^2 + 1/b^2 + 1/c^2
 area_YHO = 1.132e-19                 # [A+] area per HfO2 in a (111) plane = (a*b*c/4) / d111
 N_YHO = 34                           # 34 cells = 10.0 nm, matching the 9-11 nm films of Yun 2022 [A]
+
+# =============================================================================
+# Dielectric Physics Functions (same STO field dependence as the other SPHOx configs)
+# =============================================================================
+def sto_field_dependent_epsilon(E_V_per_m):
+    """
+    Calculates the field-dependent dielectric constant of STO.
+    Equation derived from van der Berg et al.
+    E_V_per_m: Local Electric field in V/m.
+    """
+    # Convert E from V/m to MV/cm
+    E_MV_cm = np.abs(E_V_per_m) * 1e-8
+    
+    # Fitting parameters from the paper
+    a = 358.50
+    b = 1.84
+    c = 83.84
+    f = 0.15
+    C = 736.30
+    
+    if E_MV_cm <= 0.27:
+        return 300.0
+    else:
+        return -(1.0 / E_MV_cm) * ((a / b) * np.exp(-b * E_MV_cm) + (c / f) * np.exp(-f * E_MV_cm) - C)
+
 
 # =============================================================================
 # Electrodes
@@ -139,7 +177,9 @@ config = {
     # --- Plot Settings ---
     "plot_settings": {
         "material_colors": {
-            "LSMO_scr": "#2a9d8f",
+            "STO": "#f4a261",
+            "LSMO": "#2a9d8f",
+            "LSMO_scr": "#8fd3c8",
             "YHO": "#9b5de5",
             "W_scr": "#8d99ae",
         },
@@ -154,14 +194,67 @@ config = {
         "charge_xlim": None,
     },
 
-    # --- Boundary conditions: the two electrodes (electron potential energy, eV) ---
-    "bc_left_type": 'dirichlet',
-    "V_left_applied": 0.0,                              # LSMO electrode (reference)
+    # --- Boundary conditions (electron potential energy, eV) ---
+    # left end = free STO substrate surface (Neumann); the LSMO electrode is the fixed-potential
+    # material "LSMO" (U = 0) inside the stack; the right end is the W electrode.
+    "bc_left_type": 'neumann',
+    "V_left_applied": 0.0,
     "bc_right_type": 'dirichlet',
     "V_right_applied": Phi_W - Phi_LSMO - V_bias,       # W electrode: contact potential difference - bias
 
     # --- Material definitions ---
     "MATERIALS": {
+        "STO": {
+            "uc_area": area_STO,
+            "layers": [
+                {
+                    "name": "SrO",
+                    # Ec = -chi, chi = 3.9 eV [C]: Hikita APL 90, 143507 (2007), citing Robertson & Chen APL 74, 1168 (1999)
+                    # Ev = Ec - 3.25 eV indirect gap [A gap -> C+]: van Benthem et al., JAP 90, 6156 (2001)
+                    "Ec": -3.90, "Ev": -7.15,
+                    # meff_e 1.3 [B]: Hikita 2007 citing Sroubek PRB 2, 3170 (1970); meff_h 1.2 [E]: template value
+                    "meff_e": 1.3, "meff_h": 1.2,
+                    # eps_r 330 along [001] at 300 K [A] (Neville 1972); field dependence: sto_field_dependent_epsilon
+                    "eps_r": 330.0, "is_eps_dynamic": True,
+                    "eps_dynamic_func": sto_field_dependent_epsilon,
+                    "t_layer": t_STO_half,
+                    "layer_charge": 0.0           # [A] formal ionic charge of SrO
+                },
+                {
+                    "name": "TiO2",
+                    "Ec": -3.90, "Ev": -7.15,
+                    "meff_e": 1.3, "meff_h": 1.2,
+                    "eps_r": 330.0, "is_eps_dynamic": True,
+                    "eps_dynamic_func": sto_field_dependent_epsilon,
+                    "t_layer": t_STO_half,
+                    "layer_charge": 0.0           # [A] formal ionic charge of TiO2
+                }
+            ]
+        },
+        # LSMO bottom electrode: fixed potential U = 0 (grounded); bands not solved (hard walls).
+        "LSMO": {
+            "uc_area": area_LSMO,
+            "layers": [
+                {
+                    "name": "LaSrO",
+                    "Ec": 50.0, "Ev": -50.0,
+                    "meff_e": 1.0, "meff_h": 1.0,
+                    "eps_r": eps_LSMO, "is_eps_dynamic": False,
+                    "t_layer": t_LSMO_half,
+                    "layer_charge": 0.0,
+                    "is_electrode": True, "electrode_potential": 0.0,
+                },
+                {
+                    "name": "MnO2",
+                    "Ec": 50.0, "Ev": -50.0,
+                    "meff_e": 1.0, "meff_h": 1.0,
+                    "eps_r": eps_LSMO, "is_eps_dynamic": False,
+                    "t_layer": t_LSMO_half,
+                    "layer_charge": 0.0,
+                    "is_electrode": True, "electrode_potential": 0.0,
+                }
+            ]
+        },
         # Screening gaps: no carriers (band edges far away -> hard walls for the wavefunctions),
         # no charge, only permittivity. They stand for the screening region inside each metal.
         "LSMO_scr": {
@@ -210,8 +303,8 @@ config = {
         },
     },
 
-    # --- Stack: LSMO electrode (BC) | screening gap | Y:HfO2 | screening gap | W electrode (BC) ---
-    "stack_definition": ["LSMO_scr*1", f"YHO*{N_YHO}", "W_scr*1"],
+    # --- Stack: STO substrate | LSMO electrode (fixed U) | gap | Y:HfO2 | gap | W electrode (right BC) ---
+    "stack_definition": [f"STO*{N_STO}", f"LSMO*{N_LSMO}", "LSMO_scr*1", f"YHO*{N_YHO}", "W_scr*1"],
 
     "doping_profiles": [],
 

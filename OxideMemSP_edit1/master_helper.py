@@ -129,7 +129,10 @@ def Schroed1D_dolfin(V_space, Vtot_array, Mass_array, n_eig):
 # def Poisson_dolfin(V_space, rho_net_array, Epsi_array, V_left=0.0, V_right=0.0):
 def Poisson_dolfin(V_space, rho_net_array, Epsi_array, 
                    bc_left_type='dirichlet', V_left=0.0, 
-                   bc_right_type='neumann', V_right=0.0):
+                   bc_right_type='neumann', V_right=0.0, fixed_regions=()):
+    # fixed_regions: optional list of (z_start, z_end, V) -- the potential is held at V on every node in
+    # [z_start, z_end] (an electrode inside the stack, e.g. a grounded LSMO bottom electrode on its substrate).
+    # Default () gives exactly the original behaviour.
     
     u = df.TrialFunction(V_space)
     v = df.TestFunction(V_space)
@@ -165,6 +168,16 @@ def Poisson_dolfin(V_space, rho_net_array, Epsi_array,
         def right_boundary(x, on_boundary):
             return on_boundary and abs(x[0] - z_local[-1]) < tol_bc
         bcs.append(df.DirichletBC(V_space, df.Constant(V_right), right_boundary))
+
+    # Interior electrode regions (fixed potential on every node inside)
+    class _Region(df.SubDomain):
+        def __init__(self, a, b):
+            df.SubDomain.__init__(self)
+            self.a, self.b = a, b
+        def inside(self, x, on_boundary):
+            return self.a - tol_bc <= x[0] <= self.b + tol_bc
+    for z_start, z_end, V_fix in fixed_regions:
+        bcs.append(df.DirichletBC(V_space, df.Constant(V_fix), _Region(z_start, z_end), method='pointwise'))
 
     Vs_func = df.Function(V_space)
     df.solve(a_form == L, Vs_func, bcs)

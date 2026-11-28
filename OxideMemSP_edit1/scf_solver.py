@@ -24,6 +24,22 @@ def create_function_space(z):
     return V_space
 
 
+def electrode_regions(device):
+    """(z_start, z_end, U) for every contiguous block of layers with "is_electrode": True; the potential is
+    held at the layer's "electrode_potential" (electron potential energy, eV) inside it."""
+    fl, B = device["flat_layers"], device["layer_boundaries"]
+    regions = []
+    for i, L in enumerate(fl):
+        if not L.get("is_electrode", False):
+            continue
+        U = float(L.get("electrode_potential", 0.0))
+        if regions and regions[-1][1] == B[i] and regions[-1][2] == U:
+            regions[-1] = (regions[-1][0], B[i + 1], U)
+        else:
+            regions.append((B[i], B[i + 1], U))
+    return regions
+
+
 def occupy_at_fixed_Ef(Ef, Ec, Ev, psic, psiv, N_D_array, N_A_array, Vc_local, Vv_local, z, T,
                        meff_e_array, meff_h_array, E_bind_D=0.0, E_bind_A=0.0, fully_ionized=True):
     """Carrier occupation for a GIVEN Fermi level (set by the electrodes), with exactly the same
@@ -106,6 +122,7 @@ def run_self_consistent_loop(config, device):
     has_dynamic_eps = any(L.get("is_eps_dynamic", False) and "eps_dynamic_func" in L for L in flat_layers)
     eps_delayed = has_dynamic_eps and (eps_update == "input" or scheme.name == "anderson")
     fixed_Ef = config.get("fermi_level", None)
+    fixed_regions = electrode_regions(device)
     dipole_info = device.get("dipole_info", [])
     print_pol = config.get("print_polarization", True)
     A_ref, ref_name = reference_area(device, dipole_info)
@@ -150,7 +167,8 @@ def run_self_consistent_loop(config, device):
             Vout = Poisson_dolfin(
                 V_space, rho_net, Epsi_arr,
                 config.get("bc_left_type", "neumann"), config.get("V_left_applied", 0.0),
-                config.get("bc_right_type", "neumann"), config.get("V_right_applied", 0.0)
+                config.get("bc_right_type", "neumann"), config.get("V_right_applied", 0.0),
+                **({"fixed_regions": fixed_regions} if fixed_regions else {})
             )
 
             eps_poisson = Epsi_arr          # eps actually used by this Poisson solve (for the balance)
