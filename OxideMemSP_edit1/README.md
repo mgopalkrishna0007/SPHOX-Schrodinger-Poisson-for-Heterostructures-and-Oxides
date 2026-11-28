@@ -99,33 +99,12 @@ The earlier key names (`carrier_heatmap`, `cb_wavefunctions`, …) still work. E
   - `band_ylim = (ymin, ymax)` fixes the window by hand.
 - **Layer shading.** `material_colors` gives each material one color (any matplotlib color). `background_alpha` sets the shading opacity, from 0 (invisible) to 1 (solid).
 
-## Electrodes as boundary conditions (`config_W_YHO_LSMO_STO.py`)
-
-**How the electrodes are modelled.**
-- Metal electrodes don't need their bands solved. Each one is a fixed potential (a Dirichlet boundary) behind a thin, charge-free **screening gap** of thickness λ (the Thomas–Fermi screening length) and permittivity ε_e.
-- Outside the metal this is electrostatically equivalent to a Thomas–Fermi electrode (Zhuravlev *et al.*, PRL 94, 246802 (2005)).
-- Without the gap (ideal electrodes), a uniform polarization would be screened completely, and the barriers wouldn't depend on P.
-
-**Electrodes inside the stack.** The STO substrate is kept below the LSMO electrode, so LSMO is a fixed-potential region inside the stack rather than an end boundary.
-- Mark such layers with `"is_electrode": True` and `"electrode_potential": U`. The potential is then held at U on every node inside them, via `Poisson_dolfin(..., fixed_regions=...)`.
-- This is the only change in `master_helper.py`. The previous file is kept as `master_helper_original.py`, and with no fixed regions the new one behaves exactly like it.
-
-**Fermi level.** `"fermi_level": -Phi_LSMO` fixes Ef from the electrodes. Without it, the code uses global charge neutrality as before.
-
-**Electrode potentials.** U_left = 0 and U_right = Φ_W − Φ_LSMO − V_bias. With no polarization this gives the work-function (Schottky–Mott) barriers Φ_M − χ.
-
-**Ferroelectric.** Every YHO cell carries the same fixed dipole: one `dipole_configs` entry with offsets 1..N, a `"step"` profile and q = 2 × 0.254 e. That gives P = 36 μC/cm² in every cell.
-- `POL = +1` points P toward LSMO, `−1` toward W, and `0` turns it off.
-
-**Printed diagnostics.** The polarization balance gains an "electrode charges" term and prints the screening charge on each electrode. Identical dipoles of one entry are printed as a single line.
-
 ## Files
 
 | File | Contents |
 |---|---|
 | `master_run.py` | Entry point. Calls simulation, then sweep, then plots. |
-| `master_helper.py` | `find_Ef_general`, `Schroed1D_dolfin`, `Poisson_dolfin` (+ optional `fixed_regions` for electrodes inside the stack) |
-| `master_helper_original.py` | The helper before that change |
+| `master_helper.py` | `find_Ef_general`, `Schroed1D_dolfin`, `Poisson_dolfin` (unchanged) |
 | `config_*.py` | Materials, stack, BCs, doping/dipoles, sweep, solver and mixing settings |
 | `stack_geometry.py` | Stack expansion, layer boundaries, interface-relative layer lookup |
 | `mesh_generation.py` | Exact points, uniform mesh, tolerance-based merging, nodal widths |

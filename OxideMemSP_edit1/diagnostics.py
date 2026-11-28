@@ -185,21 +185,15 @@ def verify_device(config, device, N_D_polar, N_A_polar, dipole_info):
 
     # dipoles
     rebuilt_dD, rebuilt_dA = np.zeros(len(z)), np.zeros(len(z))
-    for entry, ds in _group_dipoles(dipole_info).items():
-        oks, qps = [], []
-        for d in ds:
-            i = d["layer"]
-            rebuilt_dD += d["q_e_per_uc"] / d["uc_area"] * d["w_pos"] / dzn
-            rebuilt_dA += d["q_e_per_uc"] / d["uc_area"] * d["w_neg"] / dzn
-            qp, qm = d["q_e_per_uc"] * np.sum(d["w_pos"]), d["q_e_per_uc"] * np.sum(d["w_neg"])
-            oks.append(contained(d["w_pos"], i) and contained(d["w_neg"], i) and abs(qp - qm) < 1e-12)
-            qps.append(qp)
-        d = ds[0]
-        where = (f"offset {d['offset']} -> layer {d['layer']}" if len(ds) == 1 else
-                 f"{len(ds)} layers, offsets {ds[0]['offset']}..{ds[-1]['offset']} -> layers {ds[0]['layer']}..{ds[-1]['layer']}")
-        lines.append(f"   dipole #{entry+1}    : +/-{abs(d['q_e_per_uc']):.3f} e/uc ({'+ toward z=0' if d['q_e_per_uc'] > 0 else '+ away from z=0'}), "
-                     f"{where} {d['mat_name']}:{d['name']} ({d['profile']}), separation {d['separation']*1e9:.4f} nm | "
-                     f"+q = -q = {min(qps):+.6f}..{max(qps):+.6f} e/uc each, net 0, inside layer {flag(all(oks))}")
+    for d in dipole_info:
+        i = d["layer"]
+        rebuilt_dD += d["q_e_per_uc"] / d["uc_area"] * d["w_pos"] / dzn
+        rebuilt_dA += d["q_e_per_uc"] / d["uc_area"] * d["w_neg"] / dzn
+        qp, qm = d["q_e_per_uc"] * np.sum(d["w_pos"]), d["q_e_per_uc"] * np.sum(d["w_neg"])
+        ok = contained(d["w_pos"], i) and contained(d["w_neg"], i) and abs(qp - qm) < 1e-12
+        lines.append(f"   dipole #{d['entry']+1}    : +/-{d['q_e_per_uc']:.3f} e/uc, offset {d['offset']} -> layer {i} "
+                     f"{d['mat_name']}:{d['name']} ({d['profile']}), separation {d['separation']*1e9:.4f} nm | "
+                     f"+q {qp:.6f} / -q {qm:.6f} e/uc, net 0, both inside layer {flag(ok)}")
     for dip in config.get("dipole_configs", []):
         if not get_layer_indices_by_offset_range(fl, dip["interface"], dip["direction"], dip["layer_offset"]):
             lines.append(f"   dipole       : interface {tuple(dip['interface'])} not found in the stack -> NOT placed  {flag(False)}")
@@ -212,9 +206,10 @@ def verify_device(config, device, N_D_polar, N_A_polar, dipole_info):
 
     # totals and what neutrality requires
     got_sheet = np.sum((device["N_D_array"] - device["N_A_array"]) * dzn)
+    gross_sheet = np.sum((device["N_D_array"] + device["N_A_array"]) * dzn)   # sets the rounding scale
     A_ref, mat_ref = reference_area(device, dipole_info)
     lines.append(f"   net fixed charge (excluding dipoles): expected {expected_sheet:+.4e} m^-2, on mesh {got_sheet:+.4e} m^-2 "
-                 f"{flag(abs(got_sheet - expected_sheet) <= 1e-9 * max(abs(expected_sheet), 1e10))}")
+                 f"{flag(abs(got_sheet - expected_sheet) <= 1e-9 * max(abs(expected_sheet), gross_sheet, 1e10))}")
     lines.append(f"   -> charge neutrality needs a net mobile charge of {-expected_sheet:+.4e} m^-2 "
                  f"= {-expected_sheet*A_ref:+.4f} e/uc of {mat_ref} (electrons if negative)")
 
@@ -238,64 +233,28 @@ def verify_device(config, device, N_D_polar, N_A_polar, dipole_info):
 # =============================================================================
 # 2. Polarization / screening balance (printed every loop)
 # =============================================================================
-def _group_dipoles(dipole_info):
-    groups = {}
-    for d in dipole_info:
-        groups.setdefault(d["entry"], []).append(d)
-    return groups
-
-
 def polarization_report(config, device, dipole_info, U, eps_used, ND_plus_z, NA_minus_z, N_3D, P_3D):
     """Return (lines, numbers). U = Vout (electron potential energy in eV), eps_used = eps given to Poisson."""
     z = device["z"]; B = np.asarray(device["layer_boundaries"])
     z_ref, side = reference_side(config, z)
     A_ref, mat_ref = reference_area(device, dipole_info)
 
-    rho_ins = device["N_D_dipole"] - device["N_A_dipole"]
-    rho_fix = ND_plus_z - NA_minus_z
-    rho_mob = P_3D - N_3D
-    p_ins = E_CHARGE * fe_moment(rho_ins, z, z_ref)
-    p_fix = E_CHARGE * fe_moment(rho_fix, z, z_ref)
-    p_mob = E_CHARGE * fe_moment(rho_mob, z, z_ref)
+    p_ins = E_CHARGE * fe_moment(device["N_D_dipole"] - device["N_A_dipole"], z, z_ref)
+    p_fix = E_CHARGE * fe_moment(ND_plus_z - NA_minus_z, z, z_ref)
+    p_mob = E_CHARGE * fe_moment(P_3D - N_3D, z, z_ref)
 
     dU = np.diff(U)
     eps_el = 0.5 * (eps_used[1:] + eps_used[:-1])
     p_latt = EPS0 * np.sum((eps_el - 1.0) * dU)
     p_vac = EPS0 * (U[-1] - U[0])
-    # Screening charge on the electrodes = charge on the fixed-potential nodes (Dirichlet ends and interior
-    # electrode layers), from the FE residual of those nodes (exact for the discretisation).
-    rho_e = E_CHARGE * (rho_ins + rho_fix + rho_mob)
-    h = np.diff(z)
-    D_el = EPS0 * eps_el * dU / h                              # D on every element
-    R = np.zeros(len(z))                                       # residual: int D phi_k' + int rho phi_k
-    R[:-1] += -D_el + h / 6.0 * (2 * rho_e[:-1] + rho_e[1:])
-    R[1:] += D_el + h / 6.0 * (rho_e[:-1] + 2 * rho_e[1:])
-    q_node = -R                                                # charge (C/m^2) held by fixed nodes
-    fixed = np.zeros(len(z), bool)
-    dirichlet = [str(config.get(k, "neumann")).lower() == "dirichlet" for k in ("bc_left_type", "bc_right_type")]
-    fixed[0], fixed[-1] = dirichlet
-    electrodes = []                                            # (label, charge C/m^2)
-    if dirichlet[0]:
-        electrodes.append(("left end", q_node[0]))
-    from scf_solver import electrode_regions
-    for a, b, Ufix in electrode_regions(device):
-        m = (z >= a - 1e-18) & (z <= b + 1e-18)
-        fixed |= m
-        name = device["flat_layers"][device["layer_idx_map"][np.argmax(m)]]["mat_name"]
-        electrodes.append((f"{name} electrode", np.sum(q_node[m])))
-    if dirichlet[1]:
-        electrodes.append(("right end", q_node[-1]))
-    p_el = np.sum(q_node[fixed] * (z[fixed] - z_ref))
-    free_err = np.max(np.abs(R[~fixed])) if np.any(~fixed) else 0.0   # ~0: Poisson satisfied on free nodes
-    residual = p_ins + p_fix + p_mob + p_latt + p_el + p_vac
-    scale = max(abs(p_ins), abs(p_fix), abs(p_mob), abs(p_latt), abs(p_el), 1e-30)
+    residual = p_ins + p_fix + p_mob + p_latt + p_vac
+    scale = max(abs(p_ins), abs(p_fix), abs(p_mob), abs(p_latt), 1e-30)
 
     f = lambda p: e_nm_per_uc(p, A_ref)
     lines = []
-    # --- one line per inserted-dipole entry (identical dipoles of one entry are grouped) ---
+    # --- one line per inserted dipole ---
     dzn = device["dz_node_arr"]
-    for entry, ds in _group_dipoles(dipole_info).items():
-        d = ds[0]
+    for d in dipole_info:
         i = d["layer"]
         c_uc = uc_thickness(config, d["mat_name"])
         P_layer = d["p_Cm"] / d["t_layer"] * 100.0          # C/m^2 -> uC/cm^2
@@ -307,39 +266,27 @@ def polarization_report(config, device, dipole_info, U, eps_used, ND_plus_z, NA_
         inl = (z[:-1] >= B[i] - 1e-18) & (z[1:] <= B[i + 1] + 1e-18)        # elements inside the host layer
         eps_layer = np.sum(eps_el[inl] * np.diff(z)[inl]) / d["t_layer"]
         step_own = -p_fe / (EPS0 * eps_layer)                               # step from this dipole alone
-        steps = []
-        for dd in ds:
-            k0, k1 = np.argmin(np.abs(z - B[dd["layer"]])), np.argmin(np.abs(z - B[dd["layer"] + 1]))
-            steps.append(U[k1] - U[k0])
-        where = (f"offset {d['offset']}" if len(ds) == 1 else
-                 f"{len(ds)} layers, offsets {ds[0]['offset']}..{ds[-1]['offset']}")
-        lines.append(f" Dipole #{entry+1} | {where} -> {d['mat_name']}:{d['name']} | q = {d['q_e_per_uc']:+.3f} e/uc | "
+        k0, k1 = np.argmin(np.abs(z - B[i])), np.argmin(np.abs(z - B[i + 1]))
+        lines.append(f" Dipole #{d['entry']+1} | offset {d['offset']} -> {d['mat_name']}:{d['name']} | q = {d['q_e_per_uc']:.3f} e/uc | "
                      f"d = {d['separation']*1e9:.4f} nm | p = {e_nm_per_uc(d['p_Cm'], d['uc_area']):+.4f} e*nm/uc "
                      f"(on mesh {e_nm_per_uc(p_fe, d['uc_area']):+.4f}) | P = {P_layer:+.1f} uC/cm^2 over layer "
-                     f"({d['t_layer']*1e9:.3f} nm) = {P_uc:+.1f} uC/cm^2 over uc ({c_uc*1e9:.3f} nm)"
-                     + (" (each)" if len(ds) > 1 else ""))
-        step_txt = (f"band step across layer {steps[0]:+.4f} eV" if len(ds) == 1 else
-                    f"band step across each layer {min(steps):+.4f}..{max(steps):+.4f} eV, total {sum(steps):+.4f} eV")
+                     f"({d['t_layer']*1e9:.3f} nm) = {P_uc:+.1f} uC/cm^2 over uc ({c_uc*1e9:.3f} nm)")
         lines.append(f"            eps in layer {eps_layer:.1f} -> lattice screens {(1-1/eps_layer)*100:.2f}% of its own field | "
-                     f"step from one dipole alone {step_own:+.4f} eV | {step_txt} (dipole + background field)")
+                     f"step from this dipole alone {step_own:+.4f} eV | band step across layer {U[k1]-U[k0]:+.4f} eV "
+                     f"(dipole + background field)")
     # --- balance ---
     p_free = p_fix + p_mob
-    p_scr = p_free + p_latt + p_el
+    p_scr = p_free + p_latt
     explicit = p_ins + p_free
     lines.append(f" Polarization balance (dipole moment per area, e*nm/uc of {mat_ref}; origin = {side} Dirichlet end; "
                  f"- = pointing towards z=0):")
     lines.append(f"   inserted dipoles {f(p_ins):+.5f} | free charges {f(p_free):+.5f} "
-                 f"[ions/doping {f(p_fix):+.5f}, electrons/holes {f(p_mob):+.5f}] | lattice (eps-1) {f(p_latt):+.5f}"
-                 + (f" | electrode charges {f(p_el):+.5f}" if electrodes else ""))
-    if electrodes:
-        lines.append("   screening charge on the electrodes: " + ", ".join(
-            f"{lab} {q/E_CHARGE*A_ref:+.4f} e/uc" for lab, q in electrodes) + f" (of {mat_ref})")
+                 f"[ions/doping {f(p_fix):+.5f}, electrons/holes {f(p_mob):+.5f}] | lattice (eps-1) {f(p_latt):+.5f}")
     lines.append(f"   screening = net - inserted = {f(p_scr):+.5f} | net = {f(p_ins + p_scr):+.5f} = -eps0*dU -> "
                  f"potential step across stack dU = {U[-1]-U[0]:+.4f} eV | sum check {residual/scale:.1e}")
-    if explicit != 0.0 and not electrodes:
+    if explicit != 0.0:
         lines.append(f"   -> lattice screens {-p_latt/explicit*100:.2f}% of all explicit dipoles (inserted + free charges); "
                      f"{-p_vac/explicit*100:.2f}% is left unscreened (= the band step across the stack)")
-    nums = {"p_ins": p_ins, "p_fix": p_fix, "p_mob": p_mob, "p_latt": p_latt, "p_el": p_el, "p_vac": p_vac,
-            "electrodes": electrodes, "free_node_residual": free_err,
+    nums = {"p_ins": p_ins, "p_fix": p_fix, "p_mob": p_mob, "p_latt": p_latt, "p_vac": p_vac,
             "residual": residual, "rel_residual": residual / scale, "A_ref": A_ref}
     return lines, nums

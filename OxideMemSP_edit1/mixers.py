@@ -37,12 +37,8 @@ class AndersonMixer:
             dX = np.column_stack([self.X[i+1] - self.X[i] for i in range(len(self.X)-1)])
             A = dF.T @ dF
             A += self.reg * np.trace(A) / A.shape[0] * np.eye(A.shape[0])   # ridge
-            try:
-                gamma = np.linalg.solve(A, dF.T @ f)
-                x_new = x + self.beta * f - (dX + self.beta * dF) @ gamma
-            except np.linalg.LinAlgError:
-                # residual history has collapsed (e.g. already converged, all dF = 0): keep the plain step
-                pass
+            gamma = np.linalg.solve(A, dF.T @ f)
+            x_new = x + self.beta * f - (dX + self.beta * dF) @ gamma
 
         step = x_new - x                             # cap the largest potential change
         smax = np.max(np.abs(step))
