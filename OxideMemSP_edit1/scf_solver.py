@@ -24,6 +24,33 @@ def create_function_space(z):
     return V_space
 
 
+def occupy_at_fixed_Ef(Ef, Ec, Ev, psic, psiv, N_D_array, N_A_array, Vc_local, Vv_local, z, T,
+                       meff_e_array, meff_h_array, E_bind_D=0.0, E_bind_A=0.0, fully_ionized=True):
+    """Carrier occupation for a GIVEN Fermi level (set by the electrodes), with exactly the same
+    statistics as master_helper.find_Ef_general. Returns the same tuple:
+    (Ef, N_n, P_m, ND_plus_z, NA_minus_z, net_charge_in_solved_region)."""
+    e = 1.602176487E-19
+    kB = 1.3806488E-23
+    m0 = 9.10938188E-31
+    hbar = 6.62606896E-34 / (2 * np.pi)
+    kT_eV = (kB * T) / e if T > 0 else 1e-10
+
+    m_eff_n = np.array([np.trapz(meff_e_array * np.abs(psic[:, i])**2, x=z) for i in range(len(Ec))])
+    m_eff_m = np.array([np.trapz(meff_h_array * np.abs(psiv[:, i])**2, x=z) for i in range(len(Ev))])
+    twoD_DOS_e = (m_eff_n * m0 * kB * T) / (np.pi * hbar**2)
+    twoD_DOS_h = (m_eff_m * m0 * kB * T) / (np.pi * hbar**2)
+
+    N_n = twoD_DOS_e * np.logaddexp(0, (Ef - np.asarray(Ec)) / kT_eV)
+    P_m = twoD_DOS_h * np.logaddexp(0, (np.asarray(Ev) - Ef) / kT_eV)
+    if fully_ionized:
+        ND_plus_z, NA_minus_z = N_D_array, N_A_array
+    else:
+        ND_plus_z = N_D_array / (1 + 2 * np.exp((Ef - (Vc_local - E_bind_D)) / kT_eV))
+        NA_minus_z = N_A_array / (1 + 0.5 * np.exp((Vv_local + E_bind_A - Ef) / kT_eV))
+    net = np.sum(P_m) - np.sum(N_n) + np.trapz(ND_plus_z, x=z) - np.trapz(NA_minus_z, x=z)
+    return Ef, N_n, P_m, ND_plus_z, NA_minus_z, net
+
+
 def print_loop_report(nloop, Err, Ef, config, Q_e, Q_h, Q_ND, Q_NA, Q_net, net_integral_charge,
                       eps_old_int, eps_new_int, max_eps_change, rho_net, z, interface_idx,
                       A_ref=None, ref_name="", extra_lines=()):
@@ -78,13 +105,15 @@ def run_self_consistent_loop(config, device):
     # Converging before that would stop with eps never updated, so convergence is blocked until then.
     has_dynamic_eps = any(L.get("is_eps_dynamic", False) and "eps_dynamic_func" in L for L in flat_layers)
     eps_delayed = has_dynamic_eps and (eps_update == "input" or scheme.name == "anderson")
+    fixed_Ef = config.get("fermi_level", None)
     dipole_info = device.get("dipole_info", [])
     print_pol = config.get("print_polarization", True)
     A_ref, ref_name = reference_area(device, dipole_info)
     Vin = np.zeros_like(z)
     convergence_met = False
 
-    print(f"\nStarting Self-Consistent Poisson-Schrödinger Solver... (mixing: {scheme.name}, eps update: {eps_update})")
+    print(f"\nStarting Self-Consistent Poisson-Schrödinger Solver... (mixing: {scheme.name}, eps update: {eps_update}"
+          + (f", Fermi level fixed at {fixed_Ef:.3f} eV by the electrodes" if fixed_Ef is not None else "") + ")")
 
     try:
         # --- 8. Self-Consistent Loop ---
@@ -102,7 +131,12 @@ def run_self_consistent_loop(config, device):
             if len(Ec) == 0:
                 break
 
-            Ef, N_n, P_m, ND_plus_z, NA_minus_z, net_integral_charge = find_Ef_general(
+            # Fermi level: from global charge neutrality (default), or fixed by electrodes
+            # (config["fermi_level"] in eV; the solved region may then carry net charge, which is
+            # balanced by screening charge on the Dirichlet electrodes)
+            Ef_solver = occupy_at_fixed_Ef if fixed_Ef is not None else find_Ef_general
+            Ef_args = (fixed_Ef,) if fixed_Ef is not None else ()
+            Ef, N_n, P_m, ND_plus_z, NA_minus_z, net_integral_charge = Ef_solver(*Ef_args,
                 Ec, Ev, psic, psiv, N_D_array, N_A_array, Vtot_c, Vtot_v, z, config["T"],
                 meff_e_arr, meff_h_arr, config["E_bind_D"], config["E_bind_A"],
                 config["fully_ionized_flag"]

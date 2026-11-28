@@ -1,109 +1,93 @@
 # config_W_YHO_LSMO_STO.py
 """
-SPHOx configuration: W / Y:HfO2(111) / La0.67Sr0.33MnO3(001) / SrTiO3(001), T = 300 K.
+SPHOx configuration: W / Y:HfO2(111) / La0.67Sr0.33MnO3(001) [/ SrTiO3(001) substrate], T = 300 K.
 
-Built from SPHOx_parameter_dossier.pdf (Appendix A, compiled 27 Nov 2026). The physics values are
-the dossier's; the solver / mixing / plotting blocks and the STO field dependence
-(sto_field_dependent_epsilon) are the same as in the other SPHOx configs.
+ELECTRODE MODEL (this version)
+  LSMO and W are metallic electrodes, so their bands are not solved. Each electrode is a fixed
+  potential (Dirichlet boundary condition) placed behind a thin, charge-free "screening gap":
 
-Interface profile:
-- Thin vacuum layer (1 nm) on both ends of the stack
-- Left end (outside the SrTiO3 substrate): Dirichlet boundary condition (V = 0.0 V)
-- Right end (outside the W top electrode): Neumann boundary condition
+      LSMO electrode | LSMO_scr (lambda_LSMO, eps_LSMO) | Y:HfO2 (solved) | W_scr (lambda_W, eps_W) | W electrode
+            ^ Dirichlet U_left                                                         Dirichlet U_right ^
+
+  For a Thomas-Fermi metal with screening length lambda and background permittivity eps_e, the screening
+  charge sits ~lambda inside the metal; outside the metal this is electrostatically identical to an
+  ideal electrode surface moved back by lambda, with a gap of permittivity eps_e in between
+  (Zhuravlev et al., PRL 94, 246802 (2005)). With ideal electrodes (lambda = 0) a uniform polarization
+  is screened completely and the bands of Y:HfO2 would be flat for every POL; the finite lambda is
+  what makes the barriers depend on the polarization direction.
+  The STO substrate lies behind the metallic LSMO and does not affect the Y:HfO2 electrostatics,
+  so it is not part of the solved stack.
+
+  Fermi level: fixed by the electrodes (zero bias): Ef = -Phi_LSMO. Electrode potentials (electron
+  potential energy, eV) follow from the work functions:  U_left = 0,  U_right = Phi_W - Phi_LSMO - V_bias.
+  The resulting barriers are then Phi_B = Phi_M - chi_YHO (Schottky-Mott) plus whatever the
+  polarization and its screening add.
+
+FERROELECTRIC MODEL
+  Every Y:HfO2 (111) unit cell carries the same fixed dipole, so the film is uniformly polarized
+  (P = 36 uC/cm^2 [A], Yun et al., Nat. Mater. 21, 903 (2022)). Each cell: +q over one half, -q over the
+  other half ("step" dipole, separation t_YHO/2), with q * (t_YHO/2) = P * area_YHO * t_YHO / e, i.e.
+  q = 2 * 0.254 e = 0.508 e per cell. Inside the film the dipoles' charges cancel on average, leaving
+  the bound sheets +-0.254 e per cell at the two faces (the macroscopic P.n), plus a small intra-cell ripple.
+  POL = +1: P points toward LSMO (+ end of every dipole on the LSMO side); POL = -1: toward W; POL = 0: off.
 
 Every number carries a confidence tier; the evidence is in SPHOx_parameter_dossier.pdf.
-  [A] measured on this material, primary source checked
-  [B] measured on a close proxy, or a measured range
-  [C] theory, compilation, or a value only quoted second-hand
-  [D] modelling estimate resting on a stated assumption
-  [E] not found, unverified or placeholder -> replace before quoting results
-  A trailing + (e.g. [A+]) marks a value computed here from cited inputs; it inherits
-  the tier of its weakest input.
+  [A] measured on this material, primary source checked     [B] close proxy or measured range
+  [C] theory / compilation / second-hand                     [D] modelling estimate on a stated assumption
+  [E] not found / placeholder -> replace before quoting results.   A trailing + marks a value computed here.
 Units: energies in eV with the vacuum level at 0 eV; lengths in m; areas in m^2; masses in m0.
 
-Suggested sweeps (dossier, section 7):
-  YHO chi (Ec)        -2.0, -2.4 eV          measured vs theory; sets every YHO barrier
-  YHO eps_r           25, 30, 35              no usable source
-  POL                 -1, 0, +1 (and +-0.5)   up/down asymmetry; intrinsic vs ionic polarization
-  LSMO work function  4.2, 4.5, 4.8 eV        surface-treatment dependence
-  W work function     4.55, 5.25 eV           polycrystalline vs (110) texture
+Suggested sweeps (dossier, section 7): YHO chi (-2.0 / -2.4 eV), YHO eps_r (25, 30, 35), POL (-1, 0, +1),
+Phi_LSMO (4.2, 4.5, 4.8 eV), Phi_W (4.55, 5.25 eV); here also lambda_LSMO / lambda_W.
 """
 import numpy as np
 
 # =============================================================================
-# Lattice parameters and areas
+# Lattice / geometry
 # =============================================================================
-# SrTiO3: a = 3.905 A [A] (Vailionis et al., PRB 83, 064101 (2011), Table I)
+# SrTiO3 substrate (sets the in-plane lattice of the coherent LSMO): a = 3.905 A [A] (Vailionis 2011)
 a_STO = 3.905e-10
-t_STO_half = a_STO / 2.0             # [A+] AO / BO2 plane spacing, 1.953 A
-area_STO = a_STO**2                  # [A+] 1.525e-19 m^2
+area_STO = a_STO**2
 
-# La0.67Sr0.33MnO3: bulk R-3c a_r = 5.471 A, alpha = 60.43 deg [A] (Radaelli 1997, via Vailionis 2011)
-#   volume-equivalent pseudocubic a_pc = 3.881 A [A+]
-#   coherent on STO: in-plane a = a_STO (+0.62 % tensile)                     [D] assumes no relaxation
-#   out-of-plane c_pc = 3.849 A from elasticity with Poisson ratio 0.4       [D] nu assumed
-area_LSMO = a_STO**2
-t_LSMO_half = 3.849e-10 / 2.0
-
-# Y:HfO2, 5 mol% YO1.5, (111) on LSMO(001): a = 5.20, b = c = 5.07 A [A] (Yun et al., Nat. Mater. 21, 903 (2022))
+# Y:HfO2, 5 mol% YO1.5, (111) on LSMO(001): a = 5.20, b = c = 5.07 A [A] (Yun 2022)
 t_YHO = 2.952e-10                    # [A+] d111 from 1/d^2 = 1/a^2 + 1/b^2 + 1/c^2
 area_YHO = 1.132e-19                 # [A+] area per HfO2 in a (111) plane = (a*b*c/4) / d111
-
-# W: alpha-bcc a = 3.165 A [B]; (110) planes, one atom per in-plane cell
-t_W = 2.238e-10                      # [B+] d110 = a / sqrt(2)
-area_W = 7.083e-20                   # [B+] a^2 * sqrt(2) / 2
-
-# Vacuum layers at both ends of the stack (thin; only a hard wall / field gap)
-t_vac = 1.0e-9
+N_YHO = 34                           # 34 cells = 10.0 nm, matching the 9-11 nm films of Yun 2022 [A]
 
 # =============================================================================
-# Derived charges (see dossier, section 6)
+# Electrodes
 # =============================================================================
-# Ferroelectric bound charge: Pr = 36 uC/cm^2 at 300 K [A] (Yun 2022) -> sigma_b = P.n
-#   0.36 C/m^2 * area_YHO / e = 0.254 e per (111) cell [A+]
-# POL = +1: P points down, toward LSMO (+ sheet at the LSMO face)
-# POL = -1: P points up, toward W;  POL = 0: paraelectric reference run
+# LSMO: work function 4.5 eV, midpoint of 4.2-4.8 eV [B] (de Jong et al. 2003)
+Phi_LSMO = 4.5
+# Thomas-Fermi screening length 0.30 nm from n = 5.65e21 cm^-3 [D], m* = 2.5 [B], eps_r = 30 [C];
+# Hikita PRB 79, 073101 (2009) quotes ~0.31 nm [C+]
+lambda_LSMO = 0.30e-9
+eps_LSMO = 30.0
+
+# W: work function 4.55 eV polycrystalline [A] (Michaelson 1977); (110) texture 5.05-5.47 eV [B]
+Phi_W = 4.55
+# Thomas-Fermi length of a free-electron gas with 2 e/atom (n = 1.26e23 cm^-3, E_F = 9.17 eV), eps = 1:
+# lambda = sqrt(2 eps0 E_F / (3 e^2 n)) = 0.052 nm [E] (electron count assumed)
+lambda_W = 0.052e-9
+eps_W = 1.0
+
+# Applied bias on W relative to LSMO (V). Only 0 is an equilibrium state; the Fermi level below is
+# the LSMO one, so keep V_bias = 0 unless you know what a non-equilibrium occupation means here.
+V_bias = 0.0
+
+# =============================================================================
+# Ferroelectric polarization -> one dipole per Y:HfO2 cell
+# =============================================================================
+# Pr = 36 uC/cm^2 at 300 K [A] (Yun 2022) -> bound charge 0.36 C/m^2 * area_YHO / e = 0.254 e per cell [A+]
 POL = +1
-sigma_P = 0.254 * POL
-
-# LSMO electron gas with a compensating positive background ("jellium"):
-#   n = x / a_pc^3 = 0.33 / (3.881 A)^3 = 5.65e21 cm^-3 [D]
-#   (Hikita 2009 uses 5.1e21 cm^-3 = 0.30 / a_pc^3 for x = 0.3, no source cited)
-#   background per half-cell layer = n * t_LSMO_half * area_LSMO = 0.166 e [D]
-jel_LSMO = 0.166
-# W: free-electron gas with 2 e per atom = 1.26e23 cm^-3 -> 2.0 e per (110) layer [E] assumption
-jel_W = 2.0
-
-# =============================================================================
-# Dielectric Physics Functions (same STO field dependence as the other SPHOx configs)
-# =============================================================================
-def sto_field_dependent_epsilon(E_V_per_m):
-    """
-    Calculates the field-dependent dielectric constant of STO.
-    Equation derived from van der Berg et al.
-    E_V_per_m: Local Electric field in V/m.
-    """
-    # Convert E from V/m to MV/cm
-    E_MV_cm = np.abs(E_V_per_m) * 1e-8
-    
-    # Fitting parameters from the paper
-    a = 358.50
-    b = 1.84
-    c = 83.84
-    f = 0.15
-    C = 736.30
-    
-    if E_MV_cm <= 0.27:
-        return 300.0
-    else:
-        return -(1.0 / E_MV_cm) * ((a / b) * np.exp(-b * E_MV_cm) + (c / f) * np.exp(-f * E_MV_cm) - C)
-
+sigma_P = 0.254
+q_dipole = 2.0 * sigma_P             # "step" dipole: +q / -q over the two half-cells, separation t_YHO / 2
 
 # =============================================================================
 # Master simulation configuration
 # =============================================================================
 config = {
-    # --- Solver settings (as in the dossier) ---
+    # --- Solver settings ---
     "Nloops": 2000,
     "tol": 1e-10,
     "n": 100,
@@ -115,39 +99,30 @@ config = {
     "print_device_check": True,   # mesh / layer / charge (e/uc) consistency report before the SC loop
     "print_polarization": True,   # inserted-dipole lines + polarization (screening) balance every loop
 
+    # Fermi level fixed by the electrodes (eV, vacuum = 0). Remove / set None to use global charge
+    # neutrality instead (only meaningful when the electrodes are part of the solved stack).
+    "fermi_level": -Phi_LSMO,
+
     # --- Mixing Settings ---
-    # Choose the self-consistent mixing scheme: "anderson" or "alpha"
     "mixing_method": "anderson",
-
-    # Anderson mixing (used when mixing_method == "anderson")
-    "mix_m": 6,             # number of previous iterates kept in the Anderson history
-    "mix_beta": 0.1,        # linear mixing fraction inside the Anderson step
-    "mix_max_step": 0.1,    # cap on the largest potential change per loop (V)
-    "mix_beta_eps": 0.1,    # fixed damping of the field-dependent dielectric constant
-    "eps_start": 20,        # eps is only updated after this many loops (lets V settle first)
-    "eps_tol": 1e-3,        # relative eps change required for convergence
-
-    # Field-dependent eps update (only matters for layers with "is_eps_dynamic": True)
-    #   "input" : eps recomputed from the input potential's field every loop after eps_start
-    #   "damped": eps from the previous output field, damped -- original behaviour
+    "mix_m": 6,
+    "mix_beta": 0.1,
+    "mix_max_step": 0.1,
+    "mix_beta_eps": 0.1,
+    "eps_start": 20,
+    "eps_tol": 1e-3,
     "eps_update": "input",
-
-    # Alpha mixing (adaptive linear mixing, used when mixing_method == "alpha") -- dossier values.
-    # Note (dossier, section 7): alpha = 0.05 starts above alpha_max = 0.03; the code only clamps
-    # alpha after the first loop, so the first mixing step uses 0.05.
     "alpha": 0.05,
     "alpha_min": 1e-4,
-    "alpha_max": 0.03,
+    "alpha_max": 0.3,
     "grow_factor": 1.05,
     "shrink_factor": 0.5,
 
     # --- Fixed Charge Profiles ---
-    # Shape of every fixed charge inside its layer: "delta" | "step" | "gaussian"
-    # (polar planes = the layer_charge values below: formal charges, jellium backgrounds, P sheets)
     "charge_profile_defaults": {
         "polar":  {"shape": "delta", "sigma_frac": 0.25},
         "doping": {"shape": "delta", "sigma_frac": 0.25},
-        "dipole": {"shape": "delta", "sigma_frac": 0.25},
+        "dipole": {"shape": "step", "sigma_frac": 0.25},
     },
 
     # --- Plots to draw (True = draw, False = skip) ---
@@ -155,7 +130,7 @@ config = {
         "band_diagram_wavefunctions": False,          # Band Diagram and Wavefunctions
         "carrier_distribution_heatmap": True,         # Carrier Distribution Heatmap
         "charge_distribution_shaded": True,           # Charge Distribution with Layer Shading
-        "conduction_band_wavefunctions": True,        # Conduction Band and Electron Wavefunctions
+        "conduction_band_wavefunctions": False,       # Conduction Band and Electron Wavefunctions (fixed window)
         "band_diagram_carrier_density": True,         # Band Diagram and Carrier Density
         "charge_distribution": True,                  # Charge Distribution
         "electric_field_dielectric_constant": True,   # Electric Field and Dielectric Constant
@@ -164,103 +139,49 @@ config = {
     # --- Plot Settings ---
     "plot_settings": {
         "material_colors": {
-            "STO": "#f4a261",
-            "LSMO": "#2a9d8f",
-            "YHO_bot": "#6a4c93",
+            "LSMO_scr": "#2a9d8f",
             "YHO": "#9b5de5",
-            "YHO_top": "#6a4c93",
-            "W": "#8d99ae",
-            "Vac": "#d9d9d9",
+            "W_scr": "#8d99ae",
         },
-        "background_alpha": 0.35,      # opacity of the layer shading (0 = invisible, 1 = solid)
-        "linewidth": 2.0,              # one linewidth for every line in every plot
-        "band_ylim_exclude": [],       # materials ignored for the band-plot energy window
-        "max_real_gap_eV": 20.0,       # gaps above this are treated as vacuum/barrier and ignored
-        "band_ylim": None,             # or (ymin, ymax) in eV to fix the window by hand
-        "density_floor": None,         # fixed lower limit in m^-3, or None -> top * density_decades
-        "density_decades": 1e-10,      # used when density_floor is None
-        "charge_linear_ylim": None,    # charge-distribution left (linear) axis: (ymin, ymax) in m^-3, or None
-        "charge_xlim": None,           # charge-distribution plots: (zmin, zmax) in nm to zoom in, or None
+        "background_alpha": 0.35,
+        "linewidth": 2.0,
+        "band_ylim_exclude": [],
+        "max_real_gap_eV": 20.0,
+        "band_ylim": None,
+        "density_floor": None,
+        "density_decades": 1e-10,
+        "charge_linear_ylim": None,
+        "charge_xlim": None,
     },
 
-    # --- Boundary conditions ---
+    # --- Boundary conditions: the two electrodes (electron potential energy, eV) ---
     "bc_left_type": 'dirichlet',
-    "V_left_applied": 0.0,
-    "bc_right_type": 'neumann',
-    "V_right_applied": 0.0,
+    "V_left_applied": 0.0,                              # LSMO electrode (reference)
+    "bc_right_type": 'dirichlet',
+    "V_right_applied": Phi_W - Phi_LSMO - V_bias,       # W electrode: contact potential difference - bias
 
     # --- Material definitions ---
     "MATERIALS": {
-        "STO": {
+        # Screening gaps: no carriers (band edges far away -> hard walls for the wavefunctions),
+        # no charge, only permittivity. They stand for the screening region inside each metal.
+        "LSMO_scr": {
             "uc_area": area_STO,
             "layers": [
                 {
-                    "name": "SrO",
-                    # Ec = -chi, chi = 3.9 eV [C]: Hikita APL 90, 143507 (2007), citing Robertson & Chen APL 74, 1168 (1999)
-                    # Ev = Ec - 3.25 eV indirect gap [A gap -> C+]: van Benthem et al., JAP 90, 6156 (2001)
-                    "Ec": -3.90, "Ev": -7.15,
-                    # meff_e 1.3 [B]: Hikita 2007 citing Sroubek PRB 2, 3170 (1970);
-                    #   ARPES 1% Nb:STO: 0.63 (light) / 8.0 (heavy) [A] Wakabayashi et al., JAP 138, 115707 (2025)
-                    # meff_h 1.2 [E]: no source found (template value)
-                    "meff_e": 1.3, "meff_h": 1.2,
-                    # eps_r 330 along [001] at 300 K [A]: Neville, Hoeneisen & Mead, JAP 43, 2124 (1972);
-                    #   316.3 +- 2.2, isotropic [A]: Goryachev et al., arXiv:1508.07550
-                    # Field dependence: sto_field_dependent_epsilon (van der Berg form, as in the other configs);
-                    # eps_r is only used where eps is held constant (e.g. inside dipole layers)
-                    "eps_r": 330.0, "is_eps_dynamic": True,
-                    "eps_dynamic_func": sto_field_dependent_epsilon,
-                    "t_layer": t_STO_half,
-                    "layer_charge": 0.0           # [A] formal ionic charge of SrO
-                },
-                {
-                    "name": "TiO2",
-                    "Ec": -3.90, "Ev": -7.15,
-                    "meff_e": 1.3, "meff_h": 1.2,
-                    "eps_r": 330.0, "is_eps_dynamic": True,
-                    "eps_dynamic_func": sto_field_dependent_epsilon,
-                    "t_layer": t_STO_half,
-                    "layer_charge": 0.0           # [A] formal ionic charge of TiO2
+                    "name": "LSMO_screen",
+                    "Ec": 50.0, "Ev": -50.0,
+                    "meff_e": 1.0, "meff_h": 1.0,
+                    "eps_r": eps_LSMO, "is_eps_dynamic": False,
+                    "t_layer": lambda_LSMO,
+                    "layer_charge": 0.0
                 }
             ]
         },
-        "LSMO": {
-            "uc_area": area_LSMO,
-            "layers": [
-                {
-                    "name": "LaSrO",
-                    # Work function 4.5 eV, midpoint of 4.2-4.8 eV [B]: de Jong et al. (2003), DOI 10.1063/1.1625081
-                    # Ec = -WF - E_F, E_F = hbar^2 (3 pi^2 n)^(2/3) / 2m* = 0.46 eV (m* = 2.5, n = 5.65e21 cm^-3) [D]
-                    # Ev only keeps hole states empty (1.46 eV below E_F)                                  [E]
-                    "Ec": -4.96, "Ev": -5.96,
-                    # meff_e 2.5 [B]: Hikita PRB 79, 073101 (2009), citing Okuda PRL 81, 3203 (1998); meff_h unused [E]
-                    "meff_e": 2.5, "meff_h": 1.0,
-                    # eps_r 30 [C]: Hikita 2009 citing Shannon JAP 73, 348 (1993) (polarizability sum)
-                    "eps_r": 30.0, "is_eps_dynamic": False,
-                    "t_layer": t_LSMO_half,
-                    # formal (La0.67Sr0.33)O = +0.67 [A] plus electron-gas background [D]
-                    "layer_charge": +0.67 + jel_LSMO,
-                    # spread uniformly over the half-cell: the jellium background is uniform by definition, and
-                    # delta sheets with eps = 30 put ~0.2 eV ripples on the LSMO bands
-                    "charge_profile": "step"
-                },
-                {
-                    "name": "MnO2",
-                    "Ec": -4.96, "Ev": -5.96,
-                    "meff_e": 2.5, "meff_h": 1.0,
-                    "eps_r": 30.0, "is_eps_dynamic": False,
-                    "t_layer": t_LSMO_half,
-                    # formal MnO2 = -0.67 [A] plus electron-gas background [D]
-                    "layer_charge": -0.67 + jel_LSMO,
-                    "charge_profile": "step"      # uniform over the half-cell (see LaSrO)
-                }
-            ]
-        },
-        # Y:HfO2 split into bottom / bulk / top so the ferroelectric bound charge sits on the two faces.
-        "YHO_bot": {
+        "YHO": {
             "uc_area": area_YHO,
             "layers": [
                 {
-                    "name": "HfO2_bot",
+                    "name": "HfO2",
                     # Ec = -chi, chi = 2.0 +- 0.25 eV [B]: Monaghan et al., Solid-State Electron. 53, 438 (2009)
                     #   (undoped HfO2; CNL-model table value 2.4 eV [C] Robertson & Falabretti 2006) -> sweep 2.0-2.4
                     # Ev = Ec - 6.0 eV gap [C]: literature spread 5.6-6.3 eV
@@ -270,78 +191,42 @@ config = {
                     # eps_r [E]: no usable source (Pavoni 2022 value is the electronic eps1(0), not static) -> sweep 25-35
                     "eps_r": 30.0, "is_eps_dynamic": False,
                     "t_layer": t_YHO,
-                    "layer_charge": +sigma_P      # [A+] bound charge at the LSMO face
+                    "layer_charge": 0.0           # neutral HfO2 planes; the polarization is in dipole_configs
                 }
             ]
         },
-        "YHO": {
+        "W_scr": {
             "uc_area": area_YHO,
             "layers": [
                 {
-                    "name": "HfO2",
-                    "Ec": -2.00, "Ev": -8.00,
-                    "meff_e": 0.11, "meff_h": 0.58,
-                    "eps_r": 30.0, "is_eps_dynamic": False,
-                    "t_layer": t_YHO,
-                    "layer_charge": 0.0           # neutral HfO2 planes
-                }
-            ]
-        },
-        "YHO_top": {
-            "uc_area": area_YHO,
-            "layers": [
-                {
-                    "name": "HfO2_top",
-                    "Ec": -2.00, "Ev": -8.00,
-                    "meff_e": 0.11, "meff_h": 0.58,
-                    "eps_r": 30.0, "is_eps_dynamic": False,
-                    "t_layer": t_YHO,
-                    "layer_charge": -sigma_P      # [A+] bound charge at the W face
-                }
-            ]
-        },
-        # Thin vacuum layer on both ends: hard wall for the wavefunctions (no state peaks at the
-        # outer surfaces) and a field-carrying gap with eps = 1. Ec/Ev = +-100 eV keep carriers out.
-        "Vac": {
-            "uc_area": area_STO,
-            "layers": [
-                {
-                    "name": "Vacuum",
-                    "Ec": 100.0, "Ev": -100.0,
+                    "name": "W_screen",
+                    "Ec": 50.0, "Ev": -50.0,
                     "meff_e": 1.0, "meff_h": 1.0,
-                    "eps_r": 1.0, "is_eps_dynamic": False,
-                    "t_layer": t_vac,
+                    "eps_r": eps_W, "is_eps_dynamic": False,
+                    "t_layer": lambda_W,
                     "layer_charge": 0.0
                 }
             ]
         },
-        "W": {
-            "uc_area": area_W,
-            "layers": [
-                {
-                    "name": "W",
-                    # Work function 4.55 eV, polycrystalline [A]: Michaelson JAP 48, 4729 (1977)
-                    #   (110)-textured film: 5.05-5.47 eV [B]; beta-W in thin sputtered films is possible
-                    # Ec = -WF - 9.17 eV free-electron Fermi energy for 2 e/atom [E]; Ev keeps holes empty [E]
-                    "Ec": -13.72, "Ev": -14.72,
-                    "meff_e": 1.0, "meff_h": 1.0,   # [E] free-electron placeholder
-                    "eps_r": 1.0, "is_eps_dynamic": False,   # [E] background only
-                    "t_layer": t_W,
-                    "layer_charge": +jel_W,         # [E] positive background for 2 e/atom
-                    # uniform over the layer: a +2 e delta sheet every 0.22 nm with eps = 1 made the W bands
-                    # zig-zag by +-6 eV around their flat value
-                    "charge_profile": "step"
-                }
-            ]
-        }
     },
 
-    # --- Stack definition (substrate first) ---
-    # YHO total 34 layers = 10.0 nm, matching the 9-11 nm films of Yun 2022 [A]; other counts are your choice.
-    # Option without W layers: drop "W*8" and set bc_right_type to 'dirichlet' (see dossier, section 7).
-    # Vac*1 on both ends: thin vacuum layers (t_vac) outside the substrate and the top electrode.
-    "stack_definition": ["Vac*1", "STO*30", "LSMO*20", "YHO_bot*1", "YHO*32", "YHO_top*1", "W*8", "Vac*1"],
+    # --- Stack: LSMO electrode (BC) | screening gap | Y:HfO2 | screening gap | W electrode (BC) ---
+    "stack_definition": ["LSMO_scr*1", f"YHO*{N_YHO}", "W_scr*1"],
 
     "doping_profiles": [],
-    "dipole_configs": []
+
+    # --- Ferroelectric: one identical dipole in every Y:HfO2 cell ---
+    "dipole_configs": [
+        {
+            "interface": ["LSMO_scr", "YHO"],
+            "direction": "right",
+            "layer_offset": [1, N_YHO],          # offset 1 = first YHO cell ... N_YHO = last
+            "profile": "step",                   # + over one half-cell, - over the other (separation t_YHO/2)
+            "value": q_dipole * POL,             # POL = +1: + half on the LSMO side (P toward LSMO); -1 flips it
+            "delta_plus_0": 0.0,                 # not used by the step profile
+            "delta_minus_0": 0.0,
+            "decay_mode": "none",
+            "decay_rate": 1.0,
+        }
+    ],
 }

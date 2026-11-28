@@ -107,8 +107,11 @@ def _log_curve(ax, x, y, floor, **kw):
 
 def _fixed_charge_deltas(res):
     """Fixed + / - delta charges (doping/polar planes + dipoles) used by the charge plots."""
-    fixed_pos = res["ND_plus_z"] + res["N_D_dipole"]
-    fixed_neg = res["NA_minus_z"] + res["N_A_dipole"]
+    # signed fixed charge of the ions/doping and of the dipoles, split into + and - parts
+    a = res["ND_plus_z"] - res["NA_minus_z"]
+    b = res["N_D_dipole"] - res["N_A_dipole"]
+    fixed_pos = np.clip(a, 0, None) + np.clip(b, 0, None)
+    fixed_neg = np.clip(-a, 0, None) + np.clip(-b, 0, None)
 
     pos_idx = np.where(fixed_pos > 1e10)[0]
     neg_idx = np.where(fixed_neg > 1e10)[0]
